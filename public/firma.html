@@ -379,18 +379,30 @@
         <span class="hizmet-tarih">${h.tarih ? formatTarih(h.tarih) : ''}</span>
         <span class="hizmet-fiyat">${formatFiyat(h.fiyat, h.paraBirimi)}</span>
         <div style="display:flex;align-items:center;justify-content:center;">
-          ${h.durum === 'tahsil-edildi'
-            ? `<button class="tick-btn checked" title="Geri al" onclick="toggleOdeme('${h._id}',false)">✓</button>`
-            : `<button class="tick-btn" title="Ödeme alındı olarak işaretle" onclick="toggleOdeme('${h._id}',true)">✓</button>`
-          }
+          <button class="tick-btn ${h.durum === 'tahsil-edildi' ? 'checked' : ''}" data-hid="${h._id}" title="${h.durum === 'tahsil-edildi' ? 'Geri al' : 'Ödeme alındı olarak işaretle'}">✓</button>
         </div>
         <div class="hizmet-actions">
-          <button class="btn-icon" onclick="openEditHizmet('${h._id}')">✎</button>
-          <button class="btn-icon danger" onclick="openHizmetDeleteModal('${h._id}')">✕</button>
+          <button class="btn-icon edit-hizmet-btn" data-hid="${h._id}">✎</button>
+          <button class="btn-icon danger delete-hizmet-btn" data-hid="${h._id}">✕</button>
         </div>
       </div>
       `).join('')}
     </div>`;
+
+    el.querySelectorAll('.tick-btn[data-hid]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const h = hizmetler.find(x => x._id === btn.dataset.hid);
+        if (!h) return;
+        toggleOdeme(h._id, h.durum !== 'tahsil-edildi');
+      });
+    });
+    el.querySelectorAll('.edit-hizmet-btn').forEach(btn => {
+      btn.addEventListener('click', e => { e.stopPropagation(); openEditHizmet(btn.dataset.hid); });
+    });
+    el.querySelectorAll('.delete-hizmet-btn').forEach(btn => {
+      btn.addEventListener('click', e => { e.stopPropagation(); openHizmetDeleteModal(btn.dataset.hid); });
+    });
   }
 
   function openHizmetModal() {
