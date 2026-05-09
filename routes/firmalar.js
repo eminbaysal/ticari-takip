@@ -31,12 +31,12 @@ router.put('/:id', async (req, res) => {
   try {
     const { ad, not, website } = req.body;
     if (!ad) return res.status(400).json({ error: 'Firma adı gerekli.' });
-    const firma = await Firma.findByIdAndUpdate(
-      req.params.id,
-      { ad, not, website },
-      { new: true, runValidators: true }
-    );
+    const firma = await Firma.findById(req.params.id);
     if (!firma) return res.status(404).json({ error: 'Firma bulunamadı.' });
+    firma.ad = ad;
+    firma.not = not || '';
+    firma.website = website || '';
+    await firma.save();
     res.json(firma);
   } catch (err) {
     res.status(500).json({ error: err.message });

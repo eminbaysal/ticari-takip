@@ -118,6 +118,8 @@
     </div>
     <label>Firma Adı *</label>
     <input type="text" id="editFirmaAd" class="modal-input" />
+    <label>Web Sitesi (opsiyonel)</label>
+    <input type="text" id="editFirmaWebsite" class="modal-input" placeholder="https://örnek.com" />
     <label>Not (opsiyonel)</label>
     <textarea id="editFirmaNot" class="modal-input modal-textarea"></textarea>
     <div class="modal-footer">
@@ -412,6 +414,7 @@
   function openEditFirmaModal() {
     if (!firmaData) return;
     document.getElementById('editFirmaAd').value = firmaData.ad;
+    document.getElementById('editFirmaWebsite').value = firmaData.website || localStorage.getItem('fw_' + firmaId) || '';
     document.getElementById('editFirmaNot').value = firmaData.not || '';
     document.getElementById('firmaEditError').textContent = '';
     document.getElementById('firmaEditModal').classList.add('open');
@@ -419,15 +422,18 @@
 
   async function saveEditFirma() {
     const ad = document.getElementById('editFirmaAd').value.trim();
+    const website = document.getElementById('editFirmaWebsite').value.trim();
     const not = document.getElementById('editFirmaNot').value.trim();
     const errEl = document.getElementById('firmaEditError');
     if (!ad) { errEl.textContent = 'Firma adı gerekli.'; return; }
     const res = await fetch(`/api/firmalar/${firmaId}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ad, not })
+      body: JSON.stringify({ ad, not, website })
     });
     const data = await res.json();
     if (!res.ok) { errEl.textContent = data.error || 'Hata.'; return; }
+    if (website) localStorage.setItem('fw_' + firmaId, website);
+    else localStorage.removeItem('fw_' + firmaId);
     document.getElementById('firmaEditModal').classList.remove('open');
     loadDetay();
   }
