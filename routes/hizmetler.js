@@ -31,7 +31,7 @@ router.get('/ozet', async (req, res) => {
 // Firma hizmet ekle
 router.post('/', async (req, res) => {
   try {
-    const { firma, tip, aciklama, tarih, fiyat, paraBirimi, durum, urunAdi, adet, faturaTarihi } = req.body;
+    const { firma, tip, aciklama, tarih, fiyat, paraBirimi, durum, urunAdi, adet, faturaTarihi, oncekiDurum } = req.body;
     if (!firma) return res.status(400).json({ error: 'Firma ID gerekli.' });
     if (!tip) return res.status(400).json({ error: 'Hizmet tipi gerekli.' });
     if (!aciklama && tip !== 'urun-tedariki') return res.status(400).json({ error: 'Açıklama gerekli.' });
@@ -47,7 +47,8 @@ router.post('/', async (req, res) => {
       durum: durum || 'bekliyor',
       urunAdi: urunAdi || '',
       adet: adet !== '' && adet !== undefined ? parseFloat(adet) : null,
-      faturaTarihi: faturaTarihi || null
+      faturaTarihi: faturaTarihi || null,
+      oncekiDurum: oncekiDurum || ''
     });
     await hizmet.save();
     res.status(201).json(hizmet);
@@ -59,7 +60,7 @@ router.post('/', async (req, res) => {
 // Hizmet güncelle
 router.put('/:id', async (req, res) => {
   try {
-    const { tip, aciklama, tarih, fiyat, paraBirimi, durum, urunAdi, adet, faturaTarihi } = req.body;
+    const { tip, aciklama, tarih, fiyat, paraBirimi, durum, urunAdi, adet, faturaTarihi, oncekiDurum } = req.body;
     if (!tip) return res.status(400).json({ error: 'Hizmet tipi gerekli.' });
     if (!aciklama && tip !== 'urun-tedariki') return res.status(400).json({ error: 'Açıklama gerekli.' });
     const hizmet = await Hizmet.findByIdAndUpdate(
@@ -73,7 +74,8 @@ router.put('/:id', async (req, res) => {
         durum: durum || 'bekliyor',
         urunAdi: urunAdi || '',
         adet: adet !== '' && adet !== undefined ? parseFloat(adet) : null,
-        faturaTarihi: faturaTarihi || null
+        faturaTarihi: faturaTarihi || null,
+        oncekiDurum: oncekiDurum !== undefined ? oncekiDurum : ''
       },
       { new: true, runValidators: true }
     );

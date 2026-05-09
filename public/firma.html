@@ -466,14 +466,17 @@
   async function toggleOdeme(id, alindi) {
     const h = hizmetler.find(x => x._id === id);
     if (!h) return;
-    const yeniDurum = alindi ? 'tahsil-edildi' : 'bekliyor';
+    // Tik açılırken mevcut durumu sakla; kapatırken saklanan duruma dön
+    const yeniDurum = alindi ? 'tahsil-edildi' : (h.oncekiDurum || 'bekliyor');
+    const yeniOnceki = alindi ? h.durum : '';
     const res = await fetch(`/api/hizmetler/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         tip: h.tip, aciklama: h.aciklama || '', tarih: h.tarih,
         fiyat: h.fiyat, paraBirimi: h.paraBirimi, durum: yeniDurum,
-        urunAdi: h.urunAdi, adet: h.adet, faturaTarihi: h.faturaTarihi
+        urunAdi: h.urunAdi, adet: h.adet, faturaTarihi: h.faturaTarihi,
+        oncekiDurum: yeniOnceki
       })
     });
     if (res.ok) loadDetay();
