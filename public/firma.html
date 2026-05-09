@@ -10,7 +10,8 @@
 <div class="grid-bg"></div>
 <nav class="navbar">
   <div class="nav-brand">
-    <a href="/" class="back-link">← Ana Sayfa</a>
+    <span class="mono accent">ETS</span>
+    <span>Ödeme Takip Sistemi</span>
   </div>
   <div class="nav-right">
     <button class="nav-icon-btn admin" id="adminBtn" onclick="window.location.href='/admin'" data-tip="Yönetici Paneli" style="display:none;">
@@ -28,9 +29,14 @@
 
 <div class="container">
   <div class="firma-detay-header" id="firmaDetayHeader">
-    <div>
-      <h1 id="firmaBaslik">—</h1>
-      <p class="firma-not-text" id="firmaNotText"></p>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <a href="/" class="back-arrow-btn" title="Ana Sayfa">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><polyline points="15 18 9 12 15 6"/></svg>
+      </a>
+      <div>
+        <h1 id="firmaBaslik">—</h1>
+        <p class="firma-not-text" id="firmaNotText"></p>
+      </div>
     </div>
     <div class="firma-detay-actions">
       <div class="toplam-badge" id="toplamBadge">Toplam: —</div>
@@ -40,7 +46,10 @@
 
   <div class="section-header">
     <h2>Hizmet Kayıtları</h2>
-    <button class="btn-primary" onclick="openHizmetModal()">+ Hizmet Ekle</button>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <span id="kurBilgi" style="font-size:13px;color:var(--text-muted);"></span>
+      <button class="btn-primary" onclick="openHizmetModal()">+ Hizmet Ekle</button>
+    </div>
   </div>
 
   <div id="hizmetListesi"></div>
@@ -58,6 +67,7 @@
         <label>Hizmet Tipi *</label>
         <select id="hizmetTip" class="modal-input modal-select" onchange="onTipChange()">
           <option value="danismanlik">Danışmanlık</option>
+          <option value="teknik-destek">Teknik Destek</option>
           <option value="urun-tedariki">Ürün Tedariği</option>
           <option value="cihaz-kurulumu">Cihaz Kurulumu</option>
           <option value="devreye-alma">Devreye Alma</option>
@@ -117,6 +127,8 @@
   </div>
 </div>
 
+<div id="aciklamaTooltip"></div>
+
 <!-- Hizmet Silme Onay -->
 <div class="modal-overlay" id="hizmetDeleteModal">
   <div class="modal">
@@ -142,10 +154,42 @@
 
   async function fetchKur() {
     try {
-      const res = await fetch('https://api.frankfurter.app/latest?from=USD&to=TRY');
+      let saved = null;
+      try { saved = parseFloat(localStorage.getItem('kurUSD')); } catch {}
+      if (saved && saved > 1) { kurUSD = saved; }
+      const res = await fetch('https://open.er-api.com/v6/latest/USD');
       const data = await res.json();
-      kurUSD = data.rates.TRY;
-    } catch { kurUSD = null; }
+      if (data && data.rates && data.rates.TRY) {
+        kurUSD = data.rates.TRY;
+        try { localStorage.setItem('kurUSD', kurUSD); } catch {}
+      }
+    } catch {
+      try {
+        const saved = parseFloat(localStorage.getItem('kurUSD'));
+        if (saved && saved > 1) kurUSD = saved;
+      } catch {}
+    }
+    renderKurBilgi();
+  }
+
+  function renderKurBilgi() {
+    const el = document.getElementById('kurBilgi');
+    if (!el) return;
+    el.innerHTML = kurUSD
+      ? `1 USD = <strong>₺${new Intl.NumberFormat('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}).format(kurUSD)}</strong> &nbsp;<button onclick="manuelKur()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:12px;padding:0;">✎ Düzenle</button>`
+      : `<span style="color:var(--warn);">Kur alınamadı</span> &nbsp;<button onclick="manuelKur()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:12px;padding:0;">Manuel gir</button>`;
+  }
+
+  function manuelKur() {
+    const val = prompt('Güncel USD/TRY kurunu girin:', kurUSD || '');
+    if (!val) return;
+    const parsed = parseFloat(val.replace(',', '.'));
+    if (!parsed || parsed < 1) return;
+    kurUSD = parsed;
+    try { localStorage.setItem('kurUSD', kurUSD); } catch {}
+    renderKurBilgi();
+    renderHizmetler();
+    updateToplam();
   }
 
   function applyTheme(next) {
@@ -172,6 +216,7 @@
   const sabitTipler = ['danismanlik', 'urun-tedariki', 'cihaz-kurulumu', 'devreye-alma', 'diger'];
   const tipLabels = {
     'danismanlik': 'Danışmanlık',
+    'teknik-destek': 'Teknik Destek',
     'urun-tedariki': 'Ürün Tedariği',
     'cihaz-kurulumu': 'Cihaz Kurulumu',
     'devreye-alma': 'Devreye Alma',
@@ -260,7 +305,7 @@
       <div class="hizmet-row">
         <span class="tip-badge">${escHtml(tipLabels[h.tip] || h.tip)}</span>
         <span class="badge ${durumClass[h.durum]}">${durumLabels[h.durum] || h.durum}</span>
-        <div class="hizmet-aciklama">${escHtml(h.aciklama)}</div>
+        <div class="hizmet-aciklama" onmouseenter="showTooltip(event,this)" onmouseleave="hideTooltip()">${escHtml(h.aciklama)}</div>
         <span class="hizmet-tarih">${h.tarih ? formatTarih(h.tarih) : ''}</span>
         <span class="hizmet-fiyat">${formatFiyat(h.fiyat, h.paraBirimi)}</span>
         <div class="hizmet-actions">
@@ -396,13 +441,13 @@
     if (fiyat === null || fiyat === undefined) return '<span style="opacity:0.3">—</span>';
     if ((paraBirimi || 'TRY') === 'USD') {
       const usdFmt = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(fiyat);
-      let tlKarsilik = '';
+      let tlSatir = '';
       if (kurUSD) {
         const tl = fiyat * kurUSD;
         const tlFmt = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(tl);
-        tlKarsilik = ` <span style="opacity:0.55;font-size:11px;">(₺${tlFmt})</span>`;
+        tlSatir = `<span style="display:block;font-size:11px;color:var(--text-muted);margin-top:2px;">₺${tlFmt}</span>`;
       }
-      return `<span class="currency" style="font-family:inherit;">$</span>${usdFmt}${tlKarsilik}`;
+      return `<span style="display:flex;flex-direction:column;align-items:flex-end;"><span><span class="currency" style="font-family:inherit;">$</span>${usdFmt}</span>${tlSatir}</span>`;
     }
     return formatPara(fiyat);
   }
@@ -414,6 +459,31 @@
 
   function escHtml(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  const tooltip = document.getElementById('aciklamaTooltip');
+  function showTooltip(e, el) {
+    if (el.scrollWidth <= el.clientWidth) return;
+    tooltip.textContent = el.textContent;
+    tooltip.style.display = 'block';
+    posTooltip(e);
+    el.addEventListener('mousemove', posTooltip);
+    el._moveHandler = posTooltip;
+  }
+  function posTooltip(e) {
+    const margin = 12;
+    let x = e.clientX + 14;
+    let y = e.clientY + 14;
+    if (x + 360 > window.innerWidth) x = e.clientX - 360 - margin;
+    if (y + 120 > window.innerHeight) y = e.clientY - 120 - margin;
+    tooltip.style.left = x + 'px';
+    tooltip.style.top  = y + 'px';
+  }
+  function hideTooltip() {
+    tooltip.style.display = 'none';
+    document.querySelectorAll('.hizmet-aciklama').forEach(el => {
+      if (el._moveHandler) { el.removeEventListener('mousemove', el._moveHandler); delete el._moveHandler; }
+    });
   }
 
   document.querySelectorAll('.modal-overlay').forEach(o => {

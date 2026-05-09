@@ -157,6 +157,25 @@ body {
 }
 .back-link:hover { color: var(--accent); }
 
+.back-arrow-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.back-arrow-btn:hover {
+  background: var(--accent-dim);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  color: var(--accent);
+}
+
 /* ── Container ── */
 .container {
   max-width: 1400px;
@@ -366,9 +385,13 @@ body {
 /* ── Split Panel ── */
 .split-panel {
   display: grid;
-  grid-template-columns: 420px 1fr;
+  grid-template-columns: 1fr 0fr;
   gap: 20px;
   align-items: start;
+  transition: grid-template-columns 0.55s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+.split-panel.onizleme-acik {
+  grid-template-columns: 420px 1fr;
 }
 
 .split-left {
@@ -383,6 +406,21 @@ body {
   min-height: 420px;
   box-shadow: var(--shadow-sm);
   overflow: hidden;
+  opacity: 0;
+  transform: translateX(16px);
+  transition: opacity 0.45s ease 0.2s, transform 0.45s ease 0.2s;
+}
+.split-panel.onizleme-acik .split-right {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.onizleme-icerik {
+  transition: opacity 0.2s ease;
+}
+.onizleme-icerik.gecis {
+  opacity: 0;
+}
 }
 
 .onizleme-bos {
@@ -411,44 +449,80 @@ body {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 24px 28px 20px;
+  padding: 22px 24px 18px;
   border-bottom: 1px solid var(--border);
-  background: var(--surface2);
+  background: linear-gradient(135deg, var(--surface2) 0%, var(--surface) 100%);
+  position: relative;
+}
+.onizleme-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 24px; right: 24px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border), transparent);
 }
 
 .onizleme-header-sag {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 8px;
   flex-shrink: 0;
 }
 
 .onizleme-ad {
-  font-size: 20px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 19px;
   font-weight: 700;
   color: var(--text);
-  letter-spacing: -0.02em;
-  margin-bottom: 4px;
+  letter-spacing: -0.025em;
+  margin-bottom: 5px;
+  line-height: 1.2;
 }
 
 .onizleme-not {
   font-size: 12px;
   color: var(--text-muted);
+  font-style: italic;
 }
 
 .onizleme-toplam {
   font-family: 'DM Serif Display', 'Plus Jakarta Sans', sans-serif;
-  font-size: 18px;
+  font-size: 17px;
   color: var(--accent);
   background: var(--accent-dim);
   border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
-  padding: 6px 14px;
-  border-radius: 10px;
+  padding: 5px 13px;
+  border-radius: 9px;
   white-space: nowrap;
 }
 
+.onizleme-para-grup {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.onizleme-para-satir {
+  font-size: 12px;
+  color: var(--text-soft);
+  white-space: nowrap;
+}
+.onizleme-para-satir.usd { color: #22c55e; }
+.onizleme-para-kombine {
+  font-family: 'DM Serif Display', 'Plus Jakarta Sans', sans-serif;
+  font-size: 16px;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  padding: 4px 12px;
+  border-radius: 8px;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+
 .onizleme-hizmetler {
-  padding: 16px 20px;
+  padding: 14px 18px;
   overflow-y: auto;
   max-height: 480px;
 }
@@ -500,14 +574,18 @@ body {
 
 .firma-liste-ad {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-feature-settings: "kern" 1;
 }
-.firma-liste-row.aktif .firma-liste-ad { color: var(--accent); }
+.firma-liste-row.aktif .firma-liste-ad {
+  color: var(--accent);
+  font-weight: 700;
+}
 
 .firma-liste-actions {
   display: flex;
@@ -610,6 +688,30 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   padding: 0 12px;
+  cursor: default;
+}
+
+#aciklamaTooltip {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.6;
+  white-space: normal;
+  width: 340px;
+  max-width: 90vw;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.12);
+  pointer-events: none;
+  animation: tooltipIn 0.15s ease;
+}
+@keyframes tooltipIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .hizmet-tarih {

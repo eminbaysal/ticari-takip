@@ -67,6 +67,7 @@
       </div>
       <input type="text" class="search-input" id="aramaInput" placeholder="Firma ara..." oninput="filterFirmalar()" />
       <div id="firmaListesi"></div>
+      <div id="firmaIpucu" style="text-align:center;padding:16px 0 4px;font-size:12px;color:var(--text-muted);opacity:0.7;">Önizlemek için bir firmaya tıklayın</div>
     </div>
 
     <!-- Sağ: Önizleme -->
@@ -75,14 +76,15 @@
         <div class="onizleme-bos-ikon">⬅</div>
         <div>Önizlemek için bir firma seçin</div>
       </div>
-      <div class="onizleme-icerik" id="onizlemeIcerik" style="display:none;">
+
+      <div class="onizleme-icerik" id="onizlemeIcerik" style="display:none;" ondblclick="if(seciliFirmaId) window.location.href='/firma/'+seciliFirmaId">
         <div class="onizleme-header">
           <div>
             <div class="onizleme-ad" id="onizlemeAd"></div>
             <div class="onizleme-not" id="onizlemeNot"></div>
           </div>
           <div class="onizleme-header-sag">
-            <div class="onizleme-toplam" id="onizlemeToplam"></div>
+            <div id="onizlemeToplam" style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;"></div>
             <a class="btn-primary" id="onizlemeLink" href="#">Detaya Git →</a>
           </div>
         </div>
@@ -92,6 +94,8 @@
 
   </div>
 </div>
+
+<div id="aciklamaTooltip"></div>
 
 <!-- Firma Modal -->
 <div class="modal-overlay" id="firmaModal">
@@ -136,10 +140,21 @@
 
   async function fetchKur() {
     try {
-      const res = await fetch('https://api.frankfurter.app/latest?from=USD&to=TRY');
+      let saved = null;
+      try { saved = parseFloat(localStorage.getItem('kurUSD')); } catch {}
+      if (saved && saved > 1) { kurUSD = saved; }
+      const res = await fetch('https://open.er-api.com/v6/latest/USD');
       const data = await res.json();
-      kurUSD = data.rates.TRY;
-    } catch { kurUSD = null; }
+      if (data && data.rates && data.rates.TRY) {
+        kurUSD = data.rates.TRY;
+        try { localStorage.setItem('kurUSD', kurUSD); } catch {}
+      }
+    } catch {
+      try {
+        const saved = parseFloat(localStorage.getItem('kurUSD'));
+        if (saved && saved > 1) kurUSD = saved;
+      } catch {}
+    }
   }
 
   const tipLabels = {
@@ -223,7 +238,7 @@
         <span>İşlemler</span>
       </div>
       ${firmalar.map(f => `
-      <div class="firma-liste-row ${seciliFirmaId === f._id ? 'aktif' : ''}" onclick="selectFirma('${f._id}')">
+      <div class="firma-liste-row ${seciliFirmaId === f._id ? 'aktif' : ''}" onclick="selectFirma('${f._id}')" ondblclick="window.location.href='/firma/${f._id}'" style="cursor:pointer;">
         <div class="firma-liste-ad">${escHtml(f.ad)}</div>
         <div class="firma-liste-actions">
           <button class="btn-icon" onclick="event.stopPropagation();openEditFirma('${f._id}','${escAttr(f.ad)}','${escAttr(f.not||'')}')">✎</button>
@@ -235,42 +250,75 @@
   }
 
   async function selectFirma(id) {
+    const panelZatenAcik = seciliFirmaId !== null;
     seciliFirmaId = id;
     renderFirmalar(tumFirmalar.filter(f => {
       const q = document.getElementById('aramaInput').value.toLowerCase();
       return f.ad.toLowerCase().includes(q);
     }));
 
+    const icerik = document.getElementById('onizlemeIcerik');
+
+    if (panelZatenAcik) {
+      icerik.classList.add('gecis');
+      await new Promise(r => setTimeout(r, 180));
+    }
+
     const res = await fetch(`/api/firmalar/${id}/detay`);
     if (!res.ok) return;
     const d = await res.json();
 
     document.getElementById('onizlemeBos').style.display = 'none';
-    document.getElementById('onizlemeIcerik').style.display = 'flex';
+    icerik.style.display = 'flex';
+    document.querySelector('.split-panel').classList.add('onizleme-acik');
+    const ipucu = document.getElementById('firmaIpucu');
+    if (ipucu) ipucu.style.display = 'none';
+
     document.getElementById('onizlemeAd').textContent  = d.firma.ad;
     document.getElementById('onizlemeNot').textContent = d.firma.not || '';
     document.getElementById('onizlemeLink').href = `/firma/${id}`;
 
-    const toplam = d.hizmetler.reduce((s, h) => s + (h.fiyat || 0), 0);
-    document.getElementById('onizlemeToplam').innerHTML = formatPara(toplam);
+    let tryT = 0, usdT = 0;
+    d.hizmetler.forEach(h => {
+      if (!h.fiyat) return;
+      if ((h.paraBirimi || 'TRY') === 'USD') usdT += h.fiyat;
+      else tryT += h.fiyat;
+    });
+    const toplamEl = document.getElementById('onizlemeToplam');
+    const usdFmtStr = v => new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
+    if (usdT > 0) {
+      const kombineHtml = kurUSD
+        ? `<div class="onizleme-para-kombine">${formatPara(tryT + usdT * kurUSD)}</div>`
+        : '';
+      toplamEl.innerHTML = `
+        <div class="onizleme-para-grup">
+          <span class="onizleme-para-satir">${formatPara(tryT)}</span>
+          <span class="onizleme-para-satir usd"><span style="font-family:inherit;">$</span>${usdFmtStr(usdT)} USD</span>
+          ${kombineHtml}
+        </div>`;
+    } else {
+      toplamEl.innerHTML = `<div class="onizleme-toplam">${formatPara(tryT)}</div>`;
+    }
 
     const hEl = document.getElementById('onizlemeHizmetler');
     if (!d.hizmetler.length) {
       hEl.innerHTML = '<div class="empty-state" style="padding:24px 0;">Henüz hizmet kaydı yok.</div>';
-      return;
+    } else {
+      hEl.innerHTML = `<div class="hizmet-liste" style="margin-top:0;">
+        <div class="hizmet-liste-baslik" style="grid-template-columns:130px 100px 1fr 90px;">
+          <span>Tip</span><span>Durum</span><span>Açıklama</span><span>Fiyat</span>
+        </div>
+        ${d.hizmetler.map(h => `
+        <div class="hizmet-row" style="grid-template-columns:130px 100px 1fr 90px;">
+          <span class="tip-badge">${escHtml(tipLabels[h.tip] || h.tip)}</span>
+          <span class="badge ${durumClass[h.durum]}">${durumLabels[h.durum] || h.durum}</span>
+          <div class="hizmet-aciklama" onmouseenter="showTooltip(event,this)" onmouseleave="hideTooltip()">${escHtml(h.aciklama)}</div>
+          <span class="hizmet-fiyat">${formatFiyat(h.fiyat, h.paraBirimi)}</span>
+        </div>`).join('')}
+      </div>`;
     }
-    hEl.innerHTML = `<div class="hizmet-liste" style="margin-top:0;">
-      <div class="hizmet-liste-baslik" style="grid-template-columns:130px 100px 1fr 90px;">
-        <span>Tip</span><span>Durum</span><span>Açıklama</span><span>Fiyat</span>
-      </div>
-      ${d.hizmetler.map(h => `
-      <div class="hizmet-row" style="grid-template-columns:130px 100px 1fr 90px;">
-        <span class="tip-badge">${escHtml(tipLabels[h.tip] || h.tip)}</span>
-        <span class="badge ${durumClass[h.durum]}">${durumLabels[h.durum] || h.durum}</span>
-        <div class="hizmet-aciklama">${escHtml(h.aciklama)}</div>
-        <span class="hizmet-fiyat">${h.fiyat !== null && h.fiyat !== undefined ? formatPara(h.fiyat) : '<span style="opacity:0.3">—</span>'}</span>
-      </div>`).join('')}
-    </div>`;
+
+    icerik.classList.remove('gecis');
   }
 
   function filterFirmalar() {
@@ -350,8 +398,48 @@
     return `<span class="currency">₺</span>${formatted}`;
   }
 
+  function formatFiyat(fiyat, paraBirimi) {
+    if (fiyat === null || fiyat === undefined) return '<span style="opacity:0.3">—</span>';
+    if ((paraBirimi || 'TRY') === 'USD') {
+      const usdFmt = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(fiyat);
+      let tlKarsilik = '';
+      if (kurUSD) {
+        const tl = fiyat * kurUSD;
+        const tlFmt = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(tl);
+        tlKarsilik = ` <span style="opacity:0.55;font-size:11px;">(₺${tlFmt})</span>`;
+      }
+      return `<span class="currency" style="font-family:inherit;">$</span>${usdFmt}${tlKarsilik}`;
+    }
+    return formatPara(fiyat);
+  }
+
   function escHtml(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  const tooltip = document.getElementById('aciklamaTooltip');
+  function showTooltip(e, el) {
+    if (el.scrollWidth <= el.clientWidth) return;
+    tooltip.textContent = el.textContent;
+    tooltip.style.display = 'block';
+    posTooltip(e);
+    el._moveHandler = posTooltip;
+    el.addEventListener('mousemove', posTooltip);
+  }
+  function posTooltip(e) {
+    const margin = 12;
+    let x = e.clientX + 14;
+    let y = e.clientY + 14;
+    if (x + 360 > window.innerWidth) x = e.clientX - 360 - margin;
+    if (y + 120 > window.innerHeight) y = e.clientY - 120 - margin;
+    tooltip.style.left = x + 'px';
+    tooltip.style.top  = y + 'px';
+  }
+  function hideTooltip() {
+    tooltip.style.display = 'none';
+    document.querySelectorAll('.hizmet-aciklama').forEach(el => {
+      if (el._moveHandler) { el.removeEventListener('mousemove', el._moveHandler); delete el._moveHandler; }
+    });
   }
 
   function escAttr(s) {
