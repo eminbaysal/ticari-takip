@@ -379,11 +379,9 @@
         <span class="hizmet-tarih">${h.tarih ? formatTarih(h.tarih) : ''}</span>
         <span class="hizmet-fiyat">${formatFiyat(h.fiyat, h.paraBirimi)}</span>
         <div style="display:flex;align-items:center;justify-content:center;">
-          ${h.durum === 'fatura-kesildi'
-            ? `<button class="tick-btn" title="Ödeme alındı olarak işaretle" onclick="markOdemeAlindi('${h._id}')">✓</button>`
-            : h.durum === 'tahsil-edildi'
-              ? `<button class="tick-btn checked" title="Geri al: Ödeme Bekleniyor" onclick="markFaturaKesildi('${h._id}')">✓</button>`
-              : '<span style="width:24px;"></span>'
+          ${h.durum === 'tahsil-edildi'
+            ? `<button class="tick-btn checked" title="Geri al" onclick="toggleOdeme('${h._id}',false)">✓</button>`
+            : `<button class="tick-btn" title="Ödeme alındı olarak işaretle" onclick="toggleOdeme('${h._id}',true)">✓</button>`
           }
         </div>
         <div class="hizmet-actions">
@@ -465,31 +463,17 @@
     document.addEventListener('mousemove', posTooltip);
   }
 
-  async function markFaturaKesildi(id) {
+  async function toggleOdeme(id, alindi) {
     const h = hizmetler.find(x => x._id === id);
     if (!h) return;
+    const yeniDurum = alindi ? 'tahsil-edildi' : 'bekliyor';
     const res = await fetch(`/api/hizmetler/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         tip: h.tip, aciklama: h.aciklama || '', tarih: h.tarih,
-        fiyat: h.fiyat, paraBirimi: h.paraBirimi, durum: 'fatura-kesildi',
+        fiyat: h.fiyat, paraBirimi: h.paraBirimi, durum: yeniDurum,
         urunAdi: h.urunAdi, adet: h.adet, faturaTarihi: h.faturaTarihi
-      })
-    });
-    if (res.ok) loadDetay();
-  }
-
-  async function markOdemeAlindi(id) {
-    const h = hizmetler.find(x => x._id === id);
-    if (!h) return;
-    const res = await fetch(`/api/hizmetler/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tip: h.tip, aciklama: h.aciklama || '', tarih: h.tarih,
-        fiyat: h.fiyat, paraBirimi: h.paraBirimi, durum: 'tahsil-edildi',
-        urunAdi: h.urunAdi, adet: h.adet
       })
     });
     if (res.ok) loadDetay();
