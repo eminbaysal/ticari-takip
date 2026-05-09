@@ -15,7 +15,7 @@ const hizmetSchema = new mongoose.Schema({
   durum: {
     type: String,
     required: true,
-    enum: ['bekliyor', 'tamamlandi', 'tahsil-edildi'],
+    enum: ['bekliyor', 'tamamlandi', 'fatura-kesildi', 'tahsil-edildi'],
     default: 'bekliyor'
   }
 }, { timestamps: true });

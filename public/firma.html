@@ -81,6 +81,7 @@
         <select id="hizmetDurum" class="modal-input modal-select">
           <option value="bekliyor">Bekliyor</option>
           <option value="tamamlandi">Tamamlandı</option>
+          <option value="fatura-kesildi">Fatura Kesildi</option>
           <option value="tahsil-edildi">Tahsil Edildi</option>
         </select>
       </div>
@@ -281,12 +282,14 @@
   const durumLabels = {
     'bekliyor': 'Bekliyor',
     'tamamlandi': 'Tamamlandı',
-    'tahsil-edildi': 'Tahsil Edildi'
+    'fatura-kesildi': 'Ödeme Bekleniyor',
+    'tahsil-edildi': 'Ödeme Alındı ✓'
   };
   const durumClass = {
     'bekliyor': 'badge-warn',
     'tamamlandi': 'badge-info',
-    'tahsil-edildi': 'badge-success'
+    'fatura-kesildi': 'badge-danger',
+    'tahsil-edildi': 'badge-glowing'
   };
 
   async function checkAuth() {
@@ -350,7 +353,10 @@
       ${hizmetler.map(h => `
       <div class="hizmet-row">
         <span class="tip-badge">${escHtml(tipLabels[h.tip] || h.tip)}</span>
-        <span class="badge ${durumClass[h.durum]}">${durumLabels[h.durum] || h.durum}</span>
+        <div style="display:flex;align-items:center;gap:5px;">
+          <span class="badge ${durumClass[h.durum] || 'badge-warn'}">${durumLabels[h.durum] || h.durum}</span>
+          ${h.durum === 'fatura-kesildi' ? `<button class="tick-btn" title="Ödeme alındı olarak işaretle" onclick="markOdemeAlindi('${h._id}')">✓</button>` : ''}
+        </div>
         <div class="hizmet-aciklama" onmouseenter="showTooltip(event,this)" onmouseleave="hideTooltip()">
           ${h.tip === 'urun-tedariki' && h.urunAdi ? `<span style="font-weight:600;">${escHtml(h.urunAdi)}</span>${h.adet ? ` <span style="opacity:0.6;font-size:11px;">× ${h.adet}</span>` : ''}<br><span style="opacity:0.7;font-size:11px;">` : ''}${escHtml(h.aciklama)}${h.tip === 'urun-tedariki' && h.urunAdi ? '</span>' : ''}
         </div>
@@ -415,6 +421,21 @@
       document.getElementById('urunAdet').value = '';
     }
     document.getElementById('hizmetModal').classList.add('open');
+  }
+
+  async function markOdemeAlindi(id) {
+    const h = hizmetler.find(x => x._id === id);
+    if (!h) return;
+    const res = await fetch(`/api/hizmetler/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tip: h.tip, aciklama: h.aciklama || '', tarih: h.tarih,
+        fiyat: h.fiyat, paraBirimi: h.paraBirimi, durum: 'tahsil-edildi',
+        urunAdi: h.urunAdi, adet: h.adet
+      })
+    });
+    if (res.ok) loadDetay();
   }
 
   function closeHizmetModal() {
