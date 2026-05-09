@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ana Sayfa — Ticari Takip</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="grid-bg"></div>
+<nav class="navbar">
+  <div class="nav-brand">
+    <span class="mono accent">TTS</span>
+    <span>Ticari Takip Sistemi</span>
+  </div>
+  <div class="nav-right">
+    <span class="mono text-muted" id="navUser" style="font-size:12px;"></span>
+    <button class="btn-ghost" id="themeToggle" type="button">Tema</button>
+    <button class="btn-ghost" onclick="logout()">Çıkış</button>
+  </div>
+</nav>
+
+<div class="container">
+  <!-- Özet Kartlar -->
+  <div class="summary-grid" id="summaryGrid">
+    <div class="summary-card">
+      <div class="summary-label">Genel Toplam</div>
+      <div class="summary-value" id="sumGenel">—</div>
+    </div>
+    <div class="summary-card accent-card">
+      <div class="summary-label">Tahsil Edilen</div>
+      <div class="summary-value" id="sumTahsil">—</div>
+    </div>
+    <div class="summary-card warn-card">
+      <div class="summary-label">Bekleyen</div>
+      <div class="summary-value" id="sumBekleyen">—</div>
+    </div>
+  </div>
+
+  <!-- Firma Listesi -->
+  <div class="section-header">
+    <h2>Firmalar</h2>
+    <button class="btn-primary" onclick="openFirmaModal()">+ Firma Ekle</button>
+  </div>
+
+  <input type="text" class="search-input" id="aramaInput" placeholder="Firma ara..." oninput="filterFirmalar()" />
+
+  <div id="firmaListesi" class="firma-grid"></div>
+</div>
+
+<!-- Firma Modal -->
+<div class="modal-overlay" id="firmaModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="firmaModalBaslik">Firma Ekle</h3>
+      <button class="modal-close" onclick="closeFirmaModal()">✕</button>
+    </div>
+    <label>Firma Adı *</label>
+    <input type="text" id="firmaAd" class="modal-input" />
+    <label>Not (opsiyonel)</label>
+    <textarea id="firmaNot" class="modal-input modal-textarea"></textarea>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeFirmaModal()">İptal</button>
+      <button class="btn-primary" onclick="saveFirma()">Kaydet</button>
+    </div>
+    <div class="modal-error" id="firmaError"></div>
+  </div>
+</div>
+
+<!-- Silme Onay Modal -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Firmayı Sil</h3>
+      <button class="modal-close" onclick="closeDeleteModal()">✕</button>
+    </div>
+    <p style="color:var(--text-muted);font-size:14px;margin-bottom:24px;">Bu firmaya ait tüm hizmet kayıtları da silinecek. Emin misiniz?</p>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeDeleteModal()">İptal</button>
+      <button class="btn-danger" onclick="confirmDelete()">Sil</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let tumFirmalar = [];
+  let editFirmaId = null;
+  let deleteFirmaId = null;
+
+  function applyTheme(next) {
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem('theme', next); } catch {}
+    const btn = document.getElementById('themeToggle');
+    if (btn) btn.textContent = next === 'light' ? 'Dark' : 'Light';
+  }
+
+  function initTheme() {
+    let t = null;
+    try { t = localStorage.getItem('theme'); } catch {}
+    if (!t) {
+      t = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    }
+    applyTheme(t);
+    const btn = document.getElementById('themeToggle');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        const cur = document.documentElement.dataset.theme || 'dark';
+        applyTheme(cur === 'light' ? 'dark' : 'light');
+      });
+    }
+  }
+
+  async function checkAuth() {
+    const res = await fetch('/api/auth/me');
+    const data = await res.json();
+    if (!data.loggedIn) window.location.href = '/login';
+    else document.getElementById('navUser').textContent = data.username;
+  }
+
+  async function loadOzet() {
+    const res = await fetch('/api/hizmetler/ozet');
+    if (!res.ok) return;
+    const d = await res.json();
+    document.getElementById('sumGenel').textContent = formatPara(d.genelToplam);
+    document.getElementById('sumTahsil').textContent = formatPara(d.tahsilEdilen);
+    document.getElementById('sumBekleyen').textContent = formatPara(d.bekleyen);
+  }
+
+  async function loadFirmalar() {
+    const res = await fetch('/api/firmalar');
+    if (!res.ok) { if (res.status === 401) window.location.href = '/login'; return; }
+    tumFirmalar = await res.json();
+    renderFirmalar(tumFirmalar);
+  }
+
+  function renderFirmalar(firmalar) {
+    const el = document.getElementById('firmaListesi');
+    if (!firmalar.length) {
+      el.innerHTML = '<div class="empty-state">Henüz firma eklenmedi.</div>';
+      return;
+    }
+    el.innerHTML = firmalar.map(f => `
+      <div class="firma-card">
+        <div class="firma-card-body" onclick="window.location.href='/firma/${f._id}'">
+          <div class="firma-name">${escHtml(f.ad)}</div>
+          ${f.not ? `<div class="firma-not">${escHtml(f.not)}</div>` : ''}
+        </div>
+        <div class="firma-card-actions">
+          <button class="btn-icon" onclick="event.stopPropagation();openEditFirma('${f._id}','${escAttr(f.ad)}','${escAttr(f.not||'')}')">✎</button>
+          <button class="btn-icon danger" onclick="event.stopPropagation();openDeleteModal('${f._id}')">✕</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function filterFirmalar() {
+    const q = document.getElementById('aramaInput').value.toLowerCase();
+    renderFirmalar(tumFirmalar.filter(f => f.ad.toLowerCase().includes(q)));
+  }
+
+  function openFirmaModal() {
+    editFirmaId = null;
+    document.getElementById('firmaModalBaslik').textContent = 'Firma Ekle';
+    document.getElementById('firmaAd').value = '';
+    document.getElementById('firmaNot').value = '';
+    document.getElementById('firmaError').textContent = '';
+    document.getElementById('firmaModal').classList.add('open');
+  }
+
+  function openEditFirma(id, ad, not) {
+    editFirmaId = id;
+    document.getElementById('firmaModalBaslik').textContent = 'Firma Düzenle';
+    document.getElementById('firmaAd').value = ad;
+    document.getElementById('firmaNot').value = not;
+    document.getElementById('firmaError').textContent = '';
+    document.getElementById('firmaModal').classList.add('open');
+  }
+
+  function closeFirmaModal() {
+    document.getElementById('firmaModal').classList.remove('open');
+  }
+
+  async function saveFirma() {
+    const ad = document.getElementById('firmaAd').value.trim();
+    const not = document.getElementById('firmaNot').value.trim();
+    const errEl = document.getElementById('firmaError');
+    if (!ad) { errEl.textContent = 'Firma adı gerekli.'; return; }
+    errEl.textContent = '';
+    const url = editFirmaId ? `/api/firmalar/${editFirmaId}` : '/api/firmalar';
+    const method = editFirmaId ? 'PUT' : 'POST';
+    const res = await fetch(url, {
+      method, headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ad, not })
+    });
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent = data.error || 'Hata oluştu.'; return; }
+    closeFirmaModal();
+    loadFirmalar();
+  }
+
+  function openDeleteModal(id) {
+    deleteFirmaId = id;
+    document.getElementById('deleteModal').classList.add('open');
+  }
+
+  function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.remove('open');
+    deleteFirmaId = null;
+  }
+
+  async function confirmDelete() {
+    if (!deleteFirmaId) return;
+    const res = await fetch(`/api/firmalar/${deleteFirmaId}`, { method: 'DELETE' });
+    if (res.ok) { closeDeleteModal(); loadFirmalar(); loadOzet(); }
+  }
+
+  async function logout() {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    window.location.href = '/login';
+  }
+
+  function formatPara(val) {
+    if (val === null || val === undefined) return '—';
+    return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val);
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function escAttr(s) {
+    return String(s).replace(/'/g,'&#39;').replace(/"/g,'&quot;');
+  }
+
+  // Modal dışına tıklayınca kapat
+  document.querySelectorAll('.modal-overlay').forEach(o => {
+    o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+  });
+
+  initTheme();
+  checkAuth().then(() => { loadOzet(); loadFirmalar(); });
+</script>
+</body>
+</html>
+

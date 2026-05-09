@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Firma Detay — Ticari Takip</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="grid-bg"></div>
+<nav class="navbar">
+  <div class="nav-brand">
+    <a href="/" class="back-link">← Ana Sayfa</a>
+  </div>
+  <div class="nav-right">
+    <span class="mono text-muted" id="navUser" style="font-size:12px;"></span>
+    <button class="btn-ghost" id="themeToggle" type="button">Tema</button>
+    <button class="btn-ghost" onclick="logout()">Çıkış</button>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="firma-detay-header" id="firmaDetayHeader">
+    <div>
+      <h1 id="firmaBaslik">—</h1>
+      <p class="firma-not-text" id="firmaNotText"></p>
+    </div>
+    <div class="firma-detay-actions">
+      <div class="toplam-badge" id="toplamBadge">Toplam: —</div>
+      <button class="btn-ghost" onclick="openEditFirmaModal()">Düzenle</button>
+    </div>
+  </div>
+
+  <div class="section-header">
+    <h2>Hizmet Kayıtları</h2>
+    <button class="btn-primary" onclick="openHizmetModal()">+ Hizmet Ekle</button>
+  </div>
+
+  <div id="hizmetListesi"></div>
+</div>
+
+<!-- Hizmet Modal -->
+<div class="modal-overlay" id="hizmetModal">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <h3 id="hizmetModalBaslik">Hizmet Ekle</h3>
+      <button class="modal-close" onclick="closeHizmetModal()">✕</button>
+    </div>
+    <div class="modal-grid">
+      <div>
+        <label>Hizmet Tipi *</label>
+        <select id="hizmetTip" class="modal-input modal-select">
+          <option value="danismanlik">Danışmanlık</option>
+          <option value="urun-tedariki">Ürün Tedariği</option>
+          <option value="cihaz-kurulumu">Cihaz Kurulumu</option>
+          <option value="devreye-alma">Devreye Alma</option>
+          <option value="diger">Diğer</option>
+        </select>
+      </div>
+      <div>
+        <label>Durum *</label>
+        <select id="hizmetDurum" class="modal-input modal-select">
+          <option value="bekliyor">Bekliyor</option>
+          <option value="tamamlandi">Tamamlandı</option>
+          <option value="tahsil-edildi">Tahsil Edildi</option>
+        </select>
+      </div>
+      <div>
+        <label>Tarih (opsiyonel)</label>
+        <input type="date" id="hizmetTarih" class="modal-input" />
+      </div>
+      <div>
+        <label>Fiyat (opsiyonel)</label>
+        <input type="number" id="hizmetFiyat" class="modal-input" placeholder="0.00" step="0.01" min="0" />
+      </div>
+    </div>
+    <label>Açıklama *</label>
+    <textarea id="hizmetAciklama" class="modal-input modal-textarea"></textarea>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeHizmetModal()">İptal</button>
+      <button class="btn-primary" onclick="saveHizmet()">Kaydet</button>
+    </div>
+    <div class="modal-error" id="hizmetError"></div>
+  </div>
+</div>
+
+<!-- Firma Düzenleme Modal -->
+<div class="modal-overlay" id="firmaEditModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Firma Düzenle</h3>
+      <button class="modal-close" onclick="document.getElementById('firmaEditModal').classList.remove('open')">✕</button>
+    </div>
+    <label>Firma Adı *</label>
+    <input type="text" id="editFirmaAd" class="modal-input" />
+    <label>Not (opsiyonel)</label>
+    <textarea id="editFirmaNot" class="modal-input modal-textarea"></textarea>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="document.getElementById('firmaEditModal').classList.remove('open')">İptal</button>
+      <button class="btn-primary" onclick="saveEditFirma()">Kaydet</button>
+    </div>
+    <div class="modal-error" id="firmaEditError"></div>
+  </div>
+</div>
+
+<!-- Hizmet Silme Onay -->
+<div class="modal-overlay" id="hizmetDeleteModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Hizmeti Sil</h3>
+      <button class="modal-close" onclick="closeHizmetDeleteModal()">✕</button>
+    </div>
+    <p style="color:var(--text-muted);font-size:14px;margin-bottom:24px;">Bu hizmet kaydı silinecek. Emin misiniz?</p>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeHizmetDeleteModal()">İptal</button>
+      <button class="btn-danger" onclick="confirmHizmetDelete()">Sil</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const firmaId = window.location.pathname.split('/firma/')[1];
+  let firmaData = null;
+  let hizmetler = [];
+  let editHizmetId = null;
+  let deleteHizmetId = null;
+
+  function applyTheme(next) {
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem('theme', next); } catch {}
+    const btn = document.getElementById('themeToggle');
+    if (btn) btn.textContent = next === 'light' ? 'Dark' : 'Light';
+  }
+
+  function initTheme() {
+    let t = null;
+    try { t = localStorage.getItem('theme'); } catch {}
+    if (!t) {
+      t = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    }
+    applyTheme(t);
+    const btn = document.getElementById('themeToggle');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        const cur = document.documentElement.dataset.theme || 'dark';
+        applyTheme(cur === 'light' ? 'dark' : 'light');
+      });
+    }
+  }
+
+  const tipLabels = {
+    'danismanlik': 'Danışmanlık',
+    'urun-tedariki': 'Ürün Tedariği',
+    'cihaz-kurulumu': 'Cihaz Kurulumu',
+    'devreye-alma': 'Devreye Alma',
+    'diger': 'Diğer'
+  };
+  const durumLabels = {
+    'bekliyor': 'Bekliyor',
+    'tamamlandi': 'Tamamlandı',
+    'tahsil-edildi': 'Tahsil Edildi'
+  };
+  const durumClass = {
+    'bekliyor': 'badge-warn',
+    'tamamlandi': 'badge-info',
+    'tahsil-edildi': 'badge-success'
+  };
+
+  async function checkAuth() {
+    const res = await fetch('/api/auth/me');
+    const data = await res.json();
+    if (!data.loggedIn) window.location.href = '/login';
+    else document.getElementById('navUser').textContent = data.username;
+  }
+
+  async function loadDetay() {
+    const res = await fetch(`/api/firmalar/${firmaId}/detay`);
+    if (!res.ok) { window.location.href = '/'; return; }
+    const d = await res.json();
+    firmaData = d.firma;
+    hizmetler = d.hizmetler;
+    document.title = `${firmaData.ad} — Ticari Takip`;
+    document.getElementById('firmaBaslik').textContent = firmaData.ad;
+    document.getElementById('firmaNotText').textContent = firmaData.not || '';
+    renderHizmetler();
+    updateToplam();
+  }
+
+  function updateToplam() {
+    const toplam = hizmetler.reduce((s, h) => s + (h.fiyat || 0), 0);
+    document.getElementById('toplamBadge').textContent = 'Toplam: ' + formatPara(toplam);
+  }
+
+  function renderHizmetler() {
+    const el = document.getElementById('hizmetListesi');
+    if (!hizmetler.length) {
+      el.innerHTML = '<div class="empty-state">Henüz hizmet kaydı yok.</div>';
+      return;
+    }
+    el.innerHTML = hizmetler.map(h => `
+      <div class="hizmet-row">
+        <div class="hizmet-row-main">
+          <div class="hizmet-row-top">
+            <span class="tip-badge">${tipLabels[h.tip] || h.tip}</span>
+            <span class="badge ${durumClass[h.durum]}">${durumLabels[h.durum] || h.durum}</span>
+          </div>
+          <div class="hizmet-aciklama">${escHtml(h.aciklama)}</div>
+          <div class="hizmet-meta">
+            ${h.tarih ? `<span>${formatTarih(h.tarih)}</span>` : ''}
+            ${h.fiyat !== null && h.fiyat !== undefined ? `<span class="hizmet-fiyat">${formatPara(h.fiyat)}</span>` : ''}
+          </div>
+        </div>
+        <div class="hizmet-actions">
+          <button class="btn-icon" onclick="openEditHizmet('${h._id}')">✎</button>
+          <button class="btn-icon danger" onclick="openHizmetDeleteModal('${h._id}')">✕</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function openHizmetModal() {
+    editHizmetId = null;
+    document.getElementById('hizmetModalBaslik').textContent = 'Hizmet Ekle';
+    document.getElementById('hizmetTip').value = 'danismanlik';
+    document.getElementById('hizmetDurum').value = 'bekliyor';
+    document.getElementById('hizmetTarih').value = '';
+    document.getElementById('hizmetFiyat').value = '';
+    document.getElementById('hizmetAciklama').value = '';
+    document.getElementById('hizmetError').textContent = '';
+    document.getElementById('hizmetModal').classList.add('open');
+  }
+
+  function openEditHizmet(id) {
+    const h = hizmetler.find(x => x._id === id);
+    if (!h) return;
+    editHizmetId = id;
+    document.getElementById('hizmetModalBaslik').textContent = 'Hizmet Düzenle';
+    document.getElementById('hizmetTip').value = h.tip;
+    document.getElementById('hizmetDurum').value = h.durum;
+    document.getElementById('hizmetTarih').value = h.tarih ? h.tarih.slice(0,10) : '';
+    document.getElementById('hizmetFiyat').value = h.fiyat !== null && h.fiyat !== undefined ? h.fiyat : '';
+    document.getElementById('hizmetAciklama').value = h.aciklama;
+    document.getElementById('hizmetError').textContent = '';
+    document.getElementById('hizmetModal').classList.add('open');
+  }
+
+  function closeHizmetModal() {
+    document.getElementById('hizmetModal').classList.remove('open');
+  }
+
+  async function saveHizmet() {
+    const tip = document.getElementById('hizmetTip').value;
+    const durum = document.getElementById('hizmetDurum').value;
+    const tarih = document.getElementById('hizmetTarih').value;
+    const fiyat = document.getElementById('hizmetFiyat').value;
+    const aciklama = document.getElementById('hizmetAciklama').value.trim();
+    const errEl = document.getElementById('hizmetError');
+    if (!aciklama) { errEl.textContent = 'Açıklama gerekli.'; return; }
+    errEl.textContent = '';
+    const url = editHizmetId ? `/api/hizmetler/${editHizmetId}` : '/api/hizmetler';
+    const method = editHizmetId ? 'PUT' : 'POST';
+    const body = { tip, durum, tarih, fiyat, aciklama };
+    if (!editHizmetId) body.firma = firmaId;
+    const res = await fetch(url, {
+      method, headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent = data.error || 'Hata oluştu.'; return; }
+    closeHizmetModal();
+    loadDetay();
+  }
+
+  function openEditFirmaModal() {
+    if (!firmaData) return;
+    document.getElementById('editFirmaAd').value = firmaData.ad;
+    document.getElementById('editFirmaNot').value = firmaData.not || '';
+    document.getElementById('firmaEditError').textContent = '';
+    document.getElementById('firmaEditModal').classList.add('open');
+  }
+
+  async function saveEditFirma() {
+    const ad = document.getElementById('editFirmaAd').value.trim();
+    const not = document.getElementById('editFirmaNot').value.trim();
+    const errEl = document.getElementById('firmaEditError');
+    if (!ad) { errEl.textContent = 'Firma adı gerekli.'; return; }
+    const res = await fetch(`/api/firmalar/${firmaId}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ad, not })
+    });
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent = data.error || 'Hata.'; return; }
+    document.getElementById('firmaEditModal').classList.remove('open');
+    loadDetay();
+  }
+
+  function openHizmetDeleteModal(id) {
+    deleteHizmetId = id;
+    document.getElementById('hizmetDeleteModal').classList.add('open');
+  }
+
+  function closeHizmetDeleteModal() {
+    document.getElementById('hizmetDeleteModal').classList.remove('open');
+    deleteHizmetId = null;
+  }
+
+  async function confirmHizmetDelete() {
+    if (!deleteHizmetId) return;
+    const res = await fetch(`/api/hizmetler/${deleteHizmetId}`, { method: 'DELETE' });
+    if (res.ok) { closeHizmetDeleteModal(); loadDetay(); }
+  }
+
+  async function logout() {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    window.location.href = '/login';
+  }
+
+  function formatPara(val) {
+    if (val === null || val === undefined) return '—';
+    return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val);
+  }
+
+  function formatTarih(t) {
+    if (!t) return '';
+    return new Date(t).toLocaleDateString('tr-TR');
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  document.querySelectorAll('.modal-overlay').forEach(o => {
+    o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+  });
+
+  initTheme();
+  checkAuth().then(() => loadDetay());
+</script>
+</body>
+</html>
+
