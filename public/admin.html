@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yönetici Paneli — Ödeme Takip</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="grid-bg"></div>
+<nav class="navbar">
+  <div class="nav-brand">
+    <a href="/" class="back-link">← Ana Sayfa</a>
+  </div>
+  <div class="nav-right">
+    <button class="nav-icon-btn" id="themeToggle" type="button" data-tip="Temayı Değiştir">
+      <svg id="iconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <svg id="iconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+    <button class="nav-icon-btn logout" onclick="logout()" data-tip="Çıkış Yap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </button>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="admin-baslik">
+    <div>
+      <h1 class="admin-h1">Yönetici Paneli</h1>
+      <p style="color:var(--text-muted);font-size:13px;margin-top:4px;">Ödeme Takip Sistemi</p>
+    </div>
+    <span class="admin-rozet">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Yönetici
+    </span>
+  </div>
+
+  <!-- İstatistik Kartları -->
+  <div class="summary-grid" style="margin-bottom:32px;" id="istatGrid">
+    <div class="summary-card">
+      <div class="summary-label">Toplam Firma</div>
+      <div class="summary-value" id="statFirma">—</div>
+    </div>
+    <div class="summary-card accent-card">
+      <div class="summary-label">Toplam Hizmet</div>
+      <div class="summary-value" id="statHizmet">—</div>
+    </div>
+    <div class="summary-card warn-card">
+      <div class="summary-label">Toplam Ciro</div>
+      <div class="summary-value" id="statCiro">—</div>
+    </div>
+  </div>
+
+  <!-- Kullanıcılar -->
+  <div class="section-header" style="margin-bottom:14px;">
+    <h2>Kullanıcılar</h2>
+  </div>
+  <div class="firma-liste" id="kullaniciListe">
+    <div class="firma-liste-baslik" style="grid-template-columns:1fr 120px 120px;">
+      <span style="text-align:left;">Kullanıcı Adı</span>
+      <span>Rol</span>
+      <span>Durum</span>
+    </div>
+    <div class="firma-liste-row" style="grid-template-columns:1fr 120px 120px;cursor:default;" id="kulRow1">
+      <div class="firma-liste-ad" id="kulAd1">—</div>
+      <div style="text-align:center;"><span class="badge badge-success">Yönetici</span></div>
+      <div style="text-align:center;"><span class="badge badge-info">Aktif</span></div>
+    </div>
+    <div class="firma-liste-row" style="grid-template-columns:1fr 120px 120px;cursor:default;" id="kulRow2">
+      <div class="firma-liste-ad" id="kulAd2">—</div>
+      <div style="text-align:center;"><span class="badge badge-warn">Kullanıcı</span></div>
+      <div style="text-align:center;"><span class="badge badge-info">Aktif</span></div>
+    </div>
+  </div>
+
+  <!-- Sistem Bilgisi -->
+  <div class="section-header" style="margin-top:32px;margin-bottom:14px;">
+    <h2>Sistem Bilgisi</h2>
+  </div>
+  <div class="firma-liste">
+    <div class="admin-info-row"><span>Platform</span><span>Node.js + Express</span></div>
+    <div class="admin-info-row"><span>Veritabanı</span><span>MongoDB</span></div>
+    <div class="admin-info-row"><span>Oturum Süresi</span><span>8 saat</span></div>
+    <div class="admin-info-row" style="border-bottom:none;"><span>Versiyon</span><span>1.0.0</span></div>
+  </div>
+</div>
+
+<script>
+  function applyTheme(next) {
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem('theme', next); } catch {}
+    const sun  = document.getElementById('iconSun');
+    const moon = document.getElementById('iconMoon');
+    if (sun && moon) {
+      sun.style.display  = next === 'light' ? 'block' : 'none';
+      moon.style.display = next === 'dark'  ? 'block' : 'none';
+    }
+  }
+
+  function initTheme() {
+    let t = null;
+    try { t = localStorage.getItem('theme'); } catch {}
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+    applyTheme(t);
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      applyTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light');
+    });
+  }
+
+  async function checkAuth() {
+    const res  = await fetch('/api/auth/me');
+    const data = await res.json();
+    if (!data.loggedIn) { window.location.href = '/login'; return; }
+    if (!data.isAdmin)  { window.location.href = '/'; return; }
+  }
+
+  async function loadIstatistik() {
+    const [firmRes, hizRes] = await Promise.all([
+      fetch('/api/firmalar'),
+      fetch('/api/hizmetler/ozet')
+    ]);
+    if (firmRes.ok) {
+      const firmalar = await firmRes.json();
+      document.getElementById('statFirma').textContent = firmalar.length;
+    }
+    if (hizRes.ok) {
+      const ozet = await hizRes.json();
+      document.getElementById('statHizmet').textContent = '—';
+      document.getElementById('statCiro').innerHTML = formatPara(ozet.genelToplam);
+    }
+    const ozet = await (await fetch('/api/hizmetler/ozet')).json();
+    const hizmetRes = await fetch('/api/firmalar');
+    const firmalar = await hizmetRes.json();
+    let toplamHizmet = 0;
+    await Promise.all(firmalar.map(async f => {
+      const r = await fetch(`/api/firmalar/${f._id}/detay`);
+      if (r.ok) { const d = await r.json(); toplamHizmet += d.hizmetler.length; }
+    }));
+    document.getElementById('statHizmet').textContent = toplamHizmet;
+  }
+
+  async function loadKullanicilar() {
+    const res  = await fetch('/api/auth/kullanicilar');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data[0]) document.getElementById('kulAd1').textContent = data[0];
+    if (data[1]) document.getElementById('kulAd2').textContent = data[1];
+  }
+
+  async function logout() {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    window.location.href = '/login';
+  }
+
+  function formatPara(val) {
+    if (val === null || val === undefined) return '—';
+    const formatted = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
+    return `<span class="currency">₺</span>${formatted}`;
+  }
+
+  initTheme();
+  checkAuth().then(() => { loadIstatistik(); loadKullanicilar(); });
+</script>
+</body>
+</html>

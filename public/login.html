@@ -3,232 +3,416 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Giriş — Ticari Takip</title>
+<title>Giriş — Ödeme Takip Sistemi</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #0d0f12;
-    --surface: #161a20;
-    --border: #2a2f38;
-    --accent: #00d4aa;
-    --accent-dim: rgba(0,212,170,0.12);
-    --text: #e2e8f0;
-    --text-muted: #64748b;
-    --danger: #f87171;
-  }
-  html[data-theme="light"] {
-    --bg: #f8fafc;
-    --surface: #ffffff;
-    --border: #e2e8f0;
-    --accent: #0ea5e9;
-    --accent-dim: rgba(14,165,233,0.12);
-    --text: #0f172a;
-    --text-muted: #475569;
-    --danger: #ef4444;
-  }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'IBM Plex Sans', sans-serif;
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    overflow: hidden;
-  }
-  body::before {
-    content: '';
-    position: fixed;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(ellipse at 60% 40%, rgba(0,212,170,0.04) 0%, transparent 60%);
-    pointer-events: none;
-  }
-  .grid-bg {
-    position: fixed;
-    inset: 0;
-    background-image: linear-gradient(color-mix(in srgb, var(--border) 55%, transparent) 1px, transparent 1px),
-                      linear-gradient(90deg, color-mix(in srgb, var(--border) 55%, transparent) 1px, transparent 1px);
-    background-size: 48px 48px;
-    opacity: 0.3;
-    pointer-events: none;
-  }
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    padding: 48px 40px;
-    width: 100%;
-    max-width: 400px;
-    position: relative;
-    z-index: 1;
-  }
-  .theme-toggle {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    background: transparent;
-    color: var(--text-muted);
-    border: 1px solid var(--border);
-    padding: 6px 10px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: color 0.2s, border-color 0.2s, background 0.2s;
-    width: auto;
-    margin-top: 0;
-  }
-  .theme-toggle:hover { color: var(--text); border-color: color-mix(in srgb, var(--border) 50%, var(--text-muted)); background: color-mix(in srgb, var(--accent-dim) 65%, transparent); }
-  .card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: var(--accent);
-  }
-  .brand {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin-bottom: 8px;
-  }
-  h1 {
-    font-size: 24px;
-    font-weight: 500;
-    margin-bottom: 32px;
-    color: var(--text);
-  }
-  label {
-    display: block;
-    font-size: 11px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    margin-bottom: 6px;
-    font-family: 'IBM Plex Mono', monospace;
-  }
-  input {
-    width: 100%;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 10px 14px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 14px;
-    outline: none;
-    transition: border-color 0.2s;
-    margin-bottom: 20px;
-  }
-  input:focus { border-color: var(--accent); }
-  button {
-    width: 100%;
-    background: var(--accent);
-    color: #0d0f12;
-    border: none;
-    padding: 12px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: opacity 0.2s;
-    margin-top: 4px;
-  }
-  button:hover { opacity: 0.85; }
-  button:disabled { opacity: 0.5; cursor: not-allowed; }
-  .error {
-    background: rgba(248,113,113,0.1);
-    border: 1px solid rgba(248,113,113,0.3);
-    color: var(--danger);
-    padding: 10px 14px;
-    font-size: 13px;
-    margin-bottom: 20px;
-    display: none;
-  }
-  .error.show { display: block; }
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:         #0d1524;
+  --surface:    #132035;
+  --border:     #243550;
+  --accent:     #4f8ef5;
+  --accent-dim: rgba(79,142,245,0.13);
+  --text:       #e4eaf5;
+  --text-muted: #5d748a;
+  --text-soft:  #8ea5bf;
+  --danger:     #f07070;
+  --particle:   79,142,245;
+}
+html[data-theme="light"] {
+  --bg:         #edeae4;
+  --surface:    #f8f5f0;
+  --border:     #d8d2c8;
+  --accent:     #2d5fd4;
+  --accent-dim: rgba(45,95,212,0.10);
+  --text:       #1a2030;
+  --text-muted: #7a7060;
+  --text-soft:  #4a4535;
+  --danger:     #d44040;
+  --particle:   45,95,212;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Canvas arka plan */
+#canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Kart */
+.card {
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  padding: 38px 34px 34px;
+  width: 100%;
+  max-width: 360px;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 30px 70px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.03);
+  animation: cardIn 0.6s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+html[data-theme="light"] .card {
+  box-shadow: 0 30px 70px rgba(0,0,0,0.12);
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(28px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+
+/* Üst ışıltı çizgisi */
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 20px; right: 20px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.7;
+}
+
+/* Tema butonu */
+.theme-toggle {
+  position: absolute;
+  top: 14px; right: 14px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-soft);
+  width: 32px; height: 32px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  padding: 0;
+}
+.theme-toggle:hover {
+  background: var(--accent-dim);
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+  color: var(--accent);
+}
+.theme-toggle svg { width: 15px; height: 15px; }
+
+/* Logo / marka */
+.logo-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.logo-icon {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  background: var(--accent-dim);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.logo-icon svg { width: 20px; height: 20px; color: var(--accent); }
+.logo-text-wrap { display: flex; flex-direction: column; gap: 1px; }
+.logo-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+.logo-sub {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+h1 {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 28px;
+}
+
+/* Form */
+.field { margin-bottom: 14px; }
+label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+input {
+  width: 100%;
+  background: color-mix(in srgb, var(--bg) 55%, var(--surface));
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  padding: 10px 14px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+input::placeholder { color: var(--text-muted); opacity: 0.55; }
+input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+#loginBtn {
+  width: 100%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 12px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+  letter-spacing: 0.01em;
+  transition: opacity 0.15s, transform 0.12s, box-shadow 0.15s;
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 38%, transparent);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+#loginBtn:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 22px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+#loginBtn:active { transform: translateY(0); }
+#loginBtn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.error {
+  background: rgba(240,112,112,0.10);
+  border: 1px solid rgba(240,112,112,0.28);
+  border-radius: 8px;
+  color: var(--danger);
+  padding: 9px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 14px;
+  display: none;
+}
+.error.show { display: block; }
+
+/* Spinner */
+.spinner {
+  width: 15px; height: 15px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: none;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
-<div class="grid-bg"></div>
+
+<canvas id="canvas"></canvas>
+
 <div class="card">
-  <button class="theme-toggle" id="themeToggle" type="button">Tema</button>
-  <div class="brand">Ticari Takip Sistemi</div>
-  <h1>Giriş Yap</h1>
+  <button class="theme-toggle" id="themeToggle" type="button" aria-label="Tema değiştir">
+    <svg id="iconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    <svg id="iconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  </button>
+
+  <div class="logo-wrap">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+    </div>
+    <div class="logo-text-wrap">
+      <div class="logo-title">Ödeme Takip</div>
+      <div class="logo-sub">Sistemi</div>
+    </div>
+  </div>
+
+  <h1>Hoş geldiniz</h1>
+  <p class="subtitle">Devam etmek için giriş yapın.</p>
+
   <div class="error" id="errorMsg"></div>
-  <label>Kullanıcı Adı</label>
-  <input type="text" id="username" autocomplete="username" />
-  <label>Şifre</label>
-  <input type="password" id="password" autocomplete="current-password" />
-  <button id="loginBtn" onclick="login()">Giriş Yap</button>
+
+  <div class="field">
+    <label>Kullanıcı Adı</label>
+    <input type="text" id="username" autocomplete="username" placeholder="kullanıcı adı" />
+  </div>
+  <div class="field">
+    <label>Şifre</label>
+    <input type="password" id="password" autocomplete="current-password" placeholder="••••••••" />
+  </div>
+
+  <button id="loginBtn" onclick="login()">
+    <span id="btnText">Giriş Yap</span>
+    <div class="spinner" id="spinner"></div>
+  </button>
 </div>
+
 <script>
-  function applyTheme(next) {
-    document.documentElement.dataset.theme = next;
-    try { localStorage.setItem('theme', next); } catch {}
-    const btn = document.getElementById('themeToggle');
-    if (btn) btn.textContent = next === 'light' ? 'Dark' : 'Light';
+/* ── Tema ── */
+function applyTheme(next) {
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem('theme', next); } catch {}
+  document.getElementById('iconSun').style.display  = next === 'light' ? 'block' : 'none';
+  document.getElementById('iconMoon').style.display = next === 'dark'  ? 'block' : 'none';
+  initCanvas();
+}
+function initTheme() {
+  let t = null;
+  try { t = localStorage.getItem('theme'); } catch {}
+  if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  applyTheme(t);
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    applyTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light');
+  });
+}
+
+/* ── Canvas Parçacık Animasyonu ── */
+let animId = null;
+function initCanvas() {
+  if (animId) cancelAnimationFrame(animId);
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const isLight = document.documentElement.dataset.theme === 'light';
+
+  const PARTICLE_COLOR = isLight ? '45,95,212' : '79,142,245';
+  const BG_COLOR       = isLight ? '#edeae4'   : '#0d1524';
+  const COUNT = 70;
+  const CONNECT_DIST = 140;
+  const SPEED = 0.45;
+
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  window.onresize = () => {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  };
+
+  class Particle {
+    constructor() { this.reset(true); }
+    reset(init) {
+      this.x  = Math.random() * canvas.width;
+      this.y  = Math.random() * canvas.height;
+      this.vx = (Math.random() - 0.5) * SPEED;
+      this.vy = (Math.random() - 0.5) * SPEED;
+      this.r  = Math.random() * 2 + 1;
+      this.alpha = Math.random() * 0.5 + 0.3;
+    }
+    update() {
+      this.x += this.vx;
+      this.y += this.vy;
+      if (this.x < 0 || this.x > canvas.width)  this.vx *= -1;
+      if (this.y < 0 || this.y > canvas.height)  this.vy *= -1;
+    }
+    draw() {
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${PARTICLE_COLOR},${this.alpha})`;
+      ctx.fill();
+    }
   }
 
-  function initTheme() {
-    let t = null;
-    try { t = localStorage.getItem('theme'); } catch {}
-    if (!t) {
-      t = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-    }
-    applyTheme(t);
-    const btn = document.getElementById('themeToggle');
-    if (btn) {
-      btn.addEventListener('click', () => {
-        const cur = document.documentElement.dataset.theme || 'dark';
-        applyTheme(cur === 'light' ? 'dark' : 'light');
-      });
-    }
-  }
+  const particles = Array.from({ length: COUNT }, () => new Particle());
 
-  initTheme();
-  document.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
-  async function login() {
-    const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value;
-    const btn = document.getElementById('loginBtn');
-    const errEl = document.getElementById('errorMsg');
-    errEl.classList.remove('show');
-    if (!username || !password) {
-      errEl.textContent = 'Kullanıcı adı ve şifre gerekli.';
-      errEl.classList.add('show');
-      return;
-    }
-    btn.disabled = true;
-    btn.textContent = 'Giriş yapılıyor...';
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        window.location.href = '/';
-      } else {
-        errEl.textContent = data.error || 'Giriş başarısız.';
-        errEl.classList.add('show');
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    for (let i = 0; i < particles.length; i++) {
+      particles[i].update();
+      particles[i].draw();
+      for (let j = i + 1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < CONNECT_DIST) {
+          const alpha = (1 - dist / CONNECT_DIST) * 0.25;
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.strokeStyle = `rgba(${PARTICLE_COLOR},${alpha})`;
+          ctx.lineWidth = 0.8;
+          ctx.stroke();
+        }
       }
-    } catch {
-      errEl.textContent = 'Sunucuya ulaşılamadı.';
+    }
+    animId = requestAnimationFrame(draw);
+  }
+
+  draw();
+}
+
+/* ── Giriş ── */
+document.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+
+async function login() {
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  const btn     = document.getElementById('loginBtn');
+  const btnText = document.getElementById('btnText');
+  const spinner = document.getElementById('spinner');
+  const errEl   = document.getElementById('errorMsg');
+  errEl.classList.remove('show');
+  if (!username || !password) {
+    errEl.textContent = 'Kullanıcı adı ve şifre gerekli.';
+    errEl.classList.add('show');
+    return;
+  }
+  btn.disabled = true;
+  btnText.textContent = 'Giriş yapılıyor';
+  spinner.style.display = 'block';
+  try {
+    const res  = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      window.location.href = '/';
+    } else {
+      errEl.textContent = data.error || 'Giriş başarısız.';
       errEl.classList.add('show');
     }
-    btn.disabled = false;
-    btn.textContent = 'Giriş Yap';
+  } catch {
+    errEl.textContent = 'Sunucuya ulaşılamadı.';
+    errEl.classList.add('show');
   }
+  btn.disabled = false;
+  btnText.textContent = 'Giriş Yap';
+  spinner.style.display = 'none';
+}
+
+initTheme();
 </script>
 </body>
 </html>
-

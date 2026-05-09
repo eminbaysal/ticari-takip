@@ -3,20 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ana Sayfa — Ticari Takip</title>
+<title>Ana Sayfa — Ödeme Takip</title>
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <div class="grid-bg"></div>
 <nav class="navbar">
   <div class="nav-brand">
-    <span class="mono accent">TTS</span>
-    <span>Ticari Takip Sistemi</span>
+    <span class="mono accent">ETS</span>
+    <span>Ödeme Takip Sistemi</span>
   </div>
   <div class="nav-right">
-    <span class="mono text-muted" id="navUser" style="font-size:12px;"></span>
-    <button class="btn-ghost" id="themeToggle" type="button">Tema</button>
-    <button class="btn-ghost" onclick="logout()">Çıkış</button>
+    <button class="nav-icon-btn admin" id="adminBtn" onclick="window.location.href='/admin'" style="display:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    </button>
+    <button class="nav-icon-btn" id="themeToggle" type="button" data-tip="Temayı Değiştir">
+      <svg id="iconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <svg id="iconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+    <button class="nav-icon-btn logout" onclick="logout()" data-tip="Çıkış Yap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </button>
   </div>
 </nav>
 
@@ -37,15 +44,41 @@
     </div>
   </div>
 
-  <!-- Firma Listesi -->
-  <div class="section-header">
-    <h2>Firmalar</h2>
-    <button class="btn-primary" onclick="openFirmaModal()">+ Firma Ekle</button>
+  <!-- Split Panel -->
+  <div class="split-panel">
+
+    <!-- Sol: Firma Listesi -->
+    <div class="split-left">
+      <div class="section-header">
+        <h2>Firmalar</h2>
+        <button class="btn-primary" onclick="openFirmaModal()">+ Firma Ekle</button>
+      </div>
+      <input type="text" class="search-input" id="aramaInput" placeholder="Firma ara..." oninput="filterFirmalar()" />
+      <div id="firmaListesi"></div>
+    </div>
+
+    <!-- Sağ: Önizleme -->
+    <div class="split-right" id="onizlemePanel">
+      <div class="onizleme-bos" id="onizlemeBos">
+        <div class="onizleme-bos-ikon">⬅</div>
+        <div>Önizlemek için bir firma seçin</div>
+      </div>
+      <div class="onizleme-icerik" id="onizlemeIcerik" style="display:none;">
+        <div class="onizleme-header">
+          <div>
+            <div class="onizleme-ad" id="onizlemeAd"></div>
+            <div class="onizleme-not" id="onizlemeNot"></div>
+          </div>
+          <div class="onizleme-header-sag">
+            <div class="onizleme-toplam" id="onizlemeToplam"></div>
+            <a class="btn-primary" id="onizlemeLink" href="#">Detaya Git →</a>
+          </div>
+        </div>
+        <div class="onizleme-hizmetler" id="onizlemeHizmetler"></div>
+      </div>
+    </div>
+
   </div>
-
-  <input type="text" class="search-input" id="aramaInput" placeholder="Firma ara..." oninput="filterFirmalar()" />
-
-  <div id="firmaListesi" class="firma-grid"></div>
 </div>
 
 <!-- Firma Modal -->
@@ -86,44 +119,53 @@
   let tumFirmalar = [];
   let editFirmaId = null;
   let deleteFirmaId = null;
+  let seciliFirmaId = null;
+
+  const tipLabels = {
+    'danismanlik': 'Danışmanlık',
+    'urun-tedariki': 'Ürün Tedariği',
+    'cihaz-kurulumu': 'Cihaz Kurulumu',
+    'devreye-alma': 'Devreye Alma',
+    'diger': 'Diğer'
+  };
+  const durumLabels = { 'bekliyor': 'Bekliyor', 'tamamlandi': 'Tamamlandı', 'tahsil-edildi': 'Tahsil Edildi' };
+  const durumClass  = { 'bekliyor': 'badge-warn', 'tamamlandi': 'badge-info', 'tahsil-edildi': 'badge-success' };
 
   function applyTheme(next) {
     document.documentElement.dataset.theme = next;
     try { localStorage.setItem('theme', next); } catch {}
-    const btn = document.getElementById('themeToggle');
-    if (btn) btn.textContent = next === 'light' ? 'Dark' : 'Light';
+    const sun  = document.getElementById('iconSun');
+    const moon = document.getElementById('iconMoon');
+    if (sun && moon) {
+      sun.style.display  = next === 'light' ? 'block' : 'none';
+      moon.style.display = next === 'dark'  ? 'block' : 'none';
+    }
   }
 
   function initTheme() {
     let t = null;
     try { t = localStorage.getItem('theme'); } catch {}
-    if (!t) {
-      t = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-    }
+    if (!t) t = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
     applyTheme(t);
-    const btn = document.getElementById('themeToggle');
-    if (btn) {
-      btn.addEventListener('click', () => {
-        const cur = document.documentElement.dataset.theme || 'dark';
-        applyTheme(cur === 'light' ? 'dark' : 'light');
-      });
-    }
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      applyTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light');
+    });
   }
 
   async function checkAuth() {
     const res = await fetch('/api/auth/me');
     const data = await res.json();
-    if (!data.loggedIn) window.location.href = '/login';
-    else document.getElementById('navUser').textContent = data.username;
+    if (!data.loggedIn) { window.location.href = '/login'; return; }
+    if (data.isAdmin) document.getElementById('adminBtn').style.display = 'flex';
   }
 
   async function loadOzet() {
     const res = await fetch('/api/hizmetler/ozet');
     if (!res.ok) return;
     const d = await res.json();
-    document.getElementById('sumGenel').textContent = formatPara(d.genelToplam);
-    document.getElementById('sumTahsil').textContent = formatPara(d.tahsilEdilen);
-    document.getElementById('sumBekleyen').textContent = formatPara(d.bekleyen);
+    document.getElementById('sumGenel').innerHTML   = formatPara(d.genelToplam);
+    document.getElementById('sumTahsil').innerHTML  = formatPara(d.tahsilEdilen);
+    document.getElementById('sumBekleyen').innerHTML = formatPara(d.bekleyen);
   }
 
   async function loadFirmalar() {
@@ -139,18 +181,60 @@
       el.innerHTML = '<div class="empty-state">Henüz firma eklenmedi.</div>';
       return;
     }
-    el.innerHTML = firmalar.map(f => `
-      <div class="firma-card">
-        <div class="firma-card-body" onclick="window.location.href='/firma/${f._id}'">
-          <div class="firma-name">${escHtml(f.ad)}</div>
-          ${f.not ? `<div class="firma-not">${escHtml(f.not)}</div>` : ''}
-        </div>
-        <div class="firma-card-actions">
+    el.innerHTML = `<div class="firma-liste">
+      <div class="firma-liste-baslik">
+        <span>Firma Adı</span>
+        <span>İşlemler</span>
+      </div>
+      ${firmalar.map(f => `
+      <div class="firma-liste-row ${seciliFirmaId === f._id ? 'aktif' : ''}" onclick="selectFirma('${f._id}')">
+        <div class="firma-liste-ad">${escHtml(f.ad)}</div>
+        <div class="firma-liste-actions">
           <button class="btn-icon" onclick="event.stopPropagation();openEditFirma('${f._id}','${escAttr(f.ad)}','${escAttr(f.not||'')}')">✎</button>
           <button class="btn-icon danger" onclick="event.stopPropagation();openDeleteModal('${f._id}')">✕</button>
         </div>
       </div>
-    `).join('');
+      `).join('')}
+    </div>`;
+  }
+
+  async function selectFirma(id) {
+    seciliFirmaId = id;
+    renderFirmalar(tumFirmalar.filter(f => {
+      const q = document.getElementById('aramaInput').value.toLowerCase();
+      return f.ad.toLowerCase().includes(q);
+    }));
+
+    const res = await fetch(`/api/firmalar/${id}/detay`);
+    if (!res.ok) return;
+    const d = await res.json();
+
+    document.getElementById('onizlemeBos').style.display = 'none';
+    document.getElementById('onizlemeIcerik').style.display = 'flex';
+    document.getElementById('onizlemeAd').textContent  = d.firma.ad;
+    document.getElementById('onizlemeNot').textContent = d.firma.not || '';
+    document.getElementById('onizlemeLink').href = `/firma/${id}`;
+
+    const toplam = d.hizmetler.reduce((s, h) => s + (h.fiyat || 0), 0);
+    document.getElementById('onizlemeToplam').innerHTML = formatPara(toplam);
+
+    const hEl = document.getElementById('onizlemeHizmetler');
+    if (!d.hizmetler.length) {
+      hEl.innerHTML = '<div class="empty-state" style="padding:24px 0;">Henüz hizmet kaydı yok.</div>';
+      return;
+    }
+    hEl.innerHTML = `<div class="hizmet-liste" style="margin-top:0;">
+      <div class="hizmet-liste-baslik" style="grid-template-columns:130px 100px 1fr 90px;">
+        <span>Tip</span><span>Durum</span><span>Açıklama</span><span>Fiyat</span>
+      </div>
+      ${d.hizmetler.map(h => `
+      <div class="hizmet-row" style="grid-template-columns:130px 100px 1fr 90px;">
+        <span class="tip-badge">${escHtml(tipLabels[h.tip] || h.tip)}</span>
+        <span class="badge ${durumClass[h.durum]}">${durumLabels[h.durum] || h.durum}</span>
+        <div class="hizmet-aciklama">${escHtml(h.aciklama)}</div>
+        <span class="hizmet-fiyat">${h.fiyat !== null && h.fiyat !== undefined ? formatPara(h.fiyat) : '<span style="opacity:0.3">—</span>'}</span>
+      </div>`).join('')}
+    </div>`;
   }
 
   function filterFirmalar() {
@@ -176,26 +260,22 @@
     document.getElementById('firmaModal').classList.add('open');
   }
 
-  function closeFirmaModal() {
-    document.getElementById('firmaModal').classList.remove('open');
-  }
+  function closeFirmaModal() { document.getElementById('firmaModal').classList.remove('open'); }
 
   async function saveFirma() {
-    const ad = document.getElementById('firmaAd').value.trim();
+    const ad  = document.getElementById('firmaAd').value.trim();
     const not = document.getElementById('firmaNot').value.trim();
     const errEl = document.getElementById('firmaError');
     if (!ad) { errEl.textContent = 'Firma adı gerekli.'; return; }
     errEl.textContent = '';
-    const url = editFirmaId ? `/api/firmalar/${editFirmaId}` : '/api/firmalar';
+    const url    = editFirmaId ? `/api/firmalar/${editFirmaId}` : '/api/firmalar';
     const method = editFirmaId ? 'PUT' : 'POST';
-    const res = await fetch(url, {
-      method, headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ad, not })
-    });
+    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ad, not }) });
     const data = await res.json();
     if (!res.ok) { errEl.textContent = data.error || 'Hata oluştu.'; return; }
     closeFirmaModal();
     loadFirmalar();
+    loadOzet();
   }
 
   function openDeleteModal(id) {
@@ -211,7 +291,16 @@
   async function confirmDelete() {
     if (!deleteFirmaId) return;
     const res = await fetch(`/api/firmalar/${deleteFirmaId}`, { method: 'DELETE' });
-    if (res.ok) { closeDeleteModal(); loadFirmalar(); loadOzet(); }
+    if (res.ok) {
+      if (seciliFirmaId === deleteFirmaId) {
+        seciliFirmaId = null;
+        document.getElementById('onizlemeBos').style.display = 'flex';
+        document.getElementById('onizlemeIcerik').style.display = 'none';
+      }
+      closeDeleteModal();
+      loadFirmalar();
+      loadOzet();
+    }
   }
 
   async function logout() {
@@ -221,7 +310,8 @@
 
   function formatPara(val) {
     if (val === null || val === undefined) return '—';
-    return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(val);
+    const formatted = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
+    return `<span class="currency">₺</span>${formatted}`;
   }
 
   function escHtml(s) {
@@ -232,7 +322,6 @@
     return String(s).replace(/'/g,'&#39;').replace(/"/g,'&quot;');
   }
 
-  // Modal dışına tıklayınca kapat
   document.querySelectorAll('.modal-overlay').forEach(o => {
     o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
   });
@@ -242,4 +331,3 @@
 </script>
 </body>
 </html>
-

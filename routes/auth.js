@@ -38,10 +38,18 @@ router.post('/logout', (req, res) => {
 
 router.get('/me', (req, res) => {
   if (req.session.user) {
-    res.json({ loggedIn: true, username: req.session.user.username });
+    const isAdmin = req.session.user.username === process.env.ADMIN1_USERNAME;
+    res.json({ loggedIn: true, username: req.session.user.username, isAdmin });
   } else {
     res.json({ loggedIn: false });
   }
+});
+
+router.get('/kullanicilar', (req, res) => {
+  if (!req.session.user || req.session.user.username !== process.env.ADMIN1_USERNAME) {
+    return res.status(403).json({ error: 'Yetkisiz.' });
+  }
+  res.json([process.env.ADMIN1_USERNAME, process.env.ADMIN2_USERNAME]);
 });
 
 module.exports = router;

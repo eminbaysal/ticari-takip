@@ -4,8 +4,7 @@ const hizmetSchema = new mongoose.Schema({
   firma: { type: mongoose.Schema.Types.ObjectId, ref: 'Firma', required: true },
   tip: {
     type: String,
-    required: true,
-    enum: ['danismanlik', 'urun-tedariki', 'cihaz-kurulumu', 'devreye-alma', 'diger']
+    required: true
   },
   aciklama: { type: String, required: true, trim: true },
   tarih: { type: Date, default: null },

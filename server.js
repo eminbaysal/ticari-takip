@@ -55,6 +55,14 @@ app.get('/firma/:id', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'firma.html'));
 });
 
+// Admin sayfası - sadece admin1
+app.get('/admin', requireAuth, (req, res) => {
+  if (req.session.user.username !== process.env.ADMIN1_USERNAME) {
+    return res.redirect('/');
+  }
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
 // Korumalı API rotaları
 app.use('/api/firmalar', requireAuth, firmalarRoutes);
 app.use('/api/hizmetler', requireAuth, hizmetlerRoutes);
