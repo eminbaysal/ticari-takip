@@ -86,6 +86,22 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+// Sadece durum güncelle (tick için)
+router.patch('/:id/durum', async (req, res) => {
+  try {
+    const { durum, oncekiDurum } = req.body;
+    const hizmet = await Hizmet.findByIdAndUpdate(
+      req.params.id,
+      { durum, oncekiDurum },
+      { new: true, runValidators: true }
+    );
+    if (!hizmet) return res.status(404).json({ error: 'Hizmet bulunamadı.' });
+    res.json(hizmet);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Hizmet sil
 router.delete('/:id', async (req, res) => {
   try {

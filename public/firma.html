@@ -389,25 +389,6 @@
       `).join('')}
     </div>`;
 
-    el.querySelectorAll('.tick-btn[data-hid]').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        const h = hizmetler.find(x => x._id === btn.dataset.hid);
-        if (!h) return;
-        const alindi = h.durum !== 'tahsil-edildi';
-        // Anında görsel tepki
-        btn.classList.toggle('checked', alindi);
-        btn.title = alindi ? 'Geri al' : 'Ödeme alındı olarak işaretle';
-        btn.disabled = true;
-        toggleOdeme(h._id, alindi).finally(() => { btn.disabled = false; });
-      });
-    });
-    el.querySelectorAll('.edit-hizmet-btn').forEach(btn => {
-      btn.addEventListener('click', e => { e.stopPropagation(); openEditHizmet(btn.dataset.hid); });
-    });
-    el.querySelectorAll('.delete-hizmet-btn').forEach(btn => {
-      btn.addEventListener('click', e => { e.stopPropagation(); openHizmetDeleteModal(btn.dataset.hid); });
-    });
   }
 
   function openHizmetModal() {
@@ -483,18 +464,12 @@
   async function toggleOdeme(id, alindi) {
     const h = hizmetler.find(x => x._id === id);
     if (!h) return;
-    // Tik açılırken mevcut durumu sakla; kapatırken saklanan duruma dön
     const yeniDurum = alindi ? 'tahsil-edildi' : (h.oncekiDurum || 'bekliyor');
     const yeniOnceki = alindi ? h.durum : '';
-    const res = await fetch(`/api/hizmetler/${id}`, {
-      method: 'PUT',
+    const res = await fetch(`/api/hizmetler/${id}/durum`, {
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tip: h.tip, aciklama: h.aciklama || '', tarih: h.tarih,
-        fiyat: h.fiyat, paraBirimi: h.paraBirimi, durum: yeniDurum,
-        urunAdi: h.urunAdi, adet: h.adet, faturaTarihi: h.faturaTarihi,
-        oncekiDurum: yeniOnceki
-      })
+      body: JSON.stringify({ durum: yeniDurum, oncekiDurum: yeniOnceki })
     });
     if (res.ok) loadDetay();
   }
@@ -642,6 +617,27 @@
 
   document.querySelectorAll('.modal-overlay').forEach(o => {
     o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+  });
+
+  document.getElementById('hizmetListesi').addEventListener('click', e => {
+    const tickBtn = e.target.closest('.tick-btn[data-hid]');
+    if (tickBtn) {
+      e.stopPropagation();
+      const id = tickBtn.dataset.hid;
+      const h = hizmetler.find(x => x._id === id);
+      if (!h) return;
+      const alindi = h.durum !== 'tahsil-edildi';
+      // Anlık görsel tepki
+      tickBtn.classList.toggle('checked', alindi);
+      tickBtn.title = alindi ? 'Geri al' : 'Ödeme alındı olarak işaretle';
+      tickBtn.disabled = true;
+      toggleOdeme(id, alindi).finally(() => { tickBtn.disabled = false; });
+      return;
+    }
+    const editBtn = e.target.closest('.edit-hizmet-btn[data-hid]');
+    if (editBtn) { openEditHizmet(editBtn.dataset.hid); return; }
+    const deleteBtn = e.target.closest('.delete-hizmet-btn[data-hid]');
+    if (deleteBtn) { openHizmetDeleteModal(deleteBtn.dataset.hid); return; }
   });
 
   initTheme();
