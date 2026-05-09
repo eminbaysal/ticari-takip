@@ -364,9 +364,19 @@
       ${hizmetler.map(h => `
       <div class="hizmet-row">
         <span class="tip-badge">${escHtml(tipLabels[h.tip] || h.tip)}</span>
-        <span class="badge ${durumClass[h.durum] || 'badge-warn'}">${durumLabels[h.durum] || h.durum}</span>
-        <div class="hizmet-aciklama" onmouseenter="showTooltip(event,this)" onmouseleave="hideTooltip()">
-          ${h.tip === 'urun-tedariki' && h.urunAdi ? `<span style="font-weight:600;">${escHtml(h.urunAdi)}</span>${h.adet ? ` <span style="opacity:0.6;font-size:11px;">× ${h.adet}</span>` : ''}<br><span style="opacity:0.7;font-size:11px;">` : ''}${escHtml(h.aciklama)}${h.tip === 'urun-tedariki' && h.urunAdi ? '</span>' : ''}
+        ${h.durum === 'tahsil-edildi'
+          ? `<span class="badge badge-glowing" style="cursor:pointer;" title="Geri almak için tıkla" onclick="markFaturaKesildi('${h._id}')">${durumLabels[h.durum]}</span>`
+          : `<span class="badge ${durumClass[h.durum] || 'badge-warn'}">${durumLabels[h.durum] || h.durum}</span>`
+        }
+        <div class="hizmet-aciklama">
+          ${h.tip === 'urun-tedariki' && h.urunAdi
+            ? `<div style="display:flex;align-items:baseline;gap:8px;min-width:0;">
+                <span class="urun-adi-clip" onmouseenter="showTooltipText(event,'${escAttr(h.urunAdi)}')" onmouseleave="hideTooltip()" style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;flex-shrink:1;">${escHtml(h.urunAdi)}</span>
+                ${h.aciklama ? `<span style="opacity:0.6;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" onmouseenter="showTooltip(event,this)" onmouseleave="hideTooltip()">${escHtml(h.aciklama)}</span>` : ''}
+                ${h.adet ? `<span style="opacity:0.55;font-size:11px;white-space:nowrap;margin-left:auto;">${h.adet} adet</span>` : ''}
+              </div>`
+            : `<span onmouseenter="showTooltip(event,this)" onmouseleave="hideTooltip()">${escHtml(h.aciklama)}</span>`
+          }
         </div>
         <span class="hizmet-tarih">${h.tarih ? formatTarih(h.tarih) : ''}</span>
         <span class="hizmet-fiyat">${formatFiyat(h.fiyat, h.paraBirimi)}</span>
@@ -440,6 +450,29 @@
       document.getElementById('urunAdet').value = '';
     }
     document.getElementById('hizmetModal').classList.add('open');
+  }
+
+  function showTooltipText(e, text) {
+    const tooltip = document.getElementById('aciklamaTooltip');
+    tooltip.textContent = text;
+    tooltip.style.display = 'block';
+    posTooltip(e);
+    document.addEventListener('mousemove', posTooltip);
+  }
+
+  async function markFaturaKesildi(id) {
+    const h = hizmetler.find(x => x._id === id);
+    if (!h) return;
+    const res = await fetch(`/api/hizmetler/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tip: h.tip, aciklama: h.aciklama || '', tarih: h.tarih,
+        fiyat: h.fiyat, paraBirimi: h.paraBirimi, durum: 'fatura-kesildi',
+        urunAdi: h.urunAdi, adet: h.adet, faturaTarihi: h.faturaTarihi
+      })
+    });
+    if (res.ok) loadDetay();
   }
 
   async function markOdemeAlindi(id) {
