@@ -360,14 +360,12 @@
         <span>Tarih</span>
         <span>Fiyat</span>
         <span></span>
+        <span></span>
       </div>
       ${hizmetler.map(h => `
       <div class="hizmet-row">
         <span class="tip-badge">${escHtml(tipLabels[h.tip] || h.tip)}</span>
-        ${h.durum === 'tahsil-edildi'
-          ? `<span class="badge badge-glowing" style="cursor:pointer;" title="Geri almak için tıkla" onclick="markFaturaKesildi('${h._id}')">${durumLabels[h.durum]}</span>`
-          : `<span class="badge ${durumClass[h.durum] || 'badge-warn'}">${durumLabels[h.durum] || h.durum}</span>`
-        }
+        <span class="badge ${durumClass[h.durum] || 'badge-warn'}">${durumLabels[h.durum] || h.durum}</span>
         <div class="hizmet-aciklama">
           ${h.tip === 'urun-tedariki' && h.urunAdi
             ? `<div style="display:flex;align-items:baseline;gap:8px;min-width:0;">
@@ -380,8 +378,15 @@
         </div>
         <span class="hizmet-tarih">${h.tarih ? formatTarih(h.tarih) : ''}</span>
         <span class="hizmet-fiyat">${formatFiyat(h.fiyat, h.paraBirimi)}</span>
+        <div style="display:flex;align-items:center;justify-content:center;">
+          ${h.durum === 'fatura-kesildi'
+            ? `<button class="tick-btn" title="Ödeme alındı olarak işaretle" onclick="markOdemeAlindi('${h._id}')">✓</button>`
+            : h.durum === 'tahsil-edildi'
+              ? `<button class="tick-btn checked" title="Geri al: Ödeme Bekleniyor" onclick="markFaturaKesildi('${h._id}')">✓</button>`
+              : '<span style="width:24px;"></span>'
+          }
+        </div>
         <div class="hizmet-actions">
-          ${h.durum === 'fatura-kesildi' ? `<button class="tick-btn" title="Ödeme alındı olarak işaretle" onclick="markOdemeAlindi('${h._id}')">✓</button>` : ''}
           <button class="btn-icon" onclick="openEditHizmet('${h._id}')">✎</button>
           <button class="btn-icon danger" onclick="openHizmetDeleteModal('${h._id}')">✕</button>
         </div>
