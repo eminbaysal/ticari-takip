@@ -753,7 +753,7 @@ body {
   color: var(--accent);
   font-weight: 400;
   letter-spacing: 0.01em;
-  text-align: center;
+  text-align: right;
 }
 
 .hizmet-fiyat .currency {

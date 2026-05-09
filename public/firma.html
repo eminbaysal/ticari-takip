@@ -394,7 +394,12 @@
         e.stopPropagation();
         const h = hizmetler.find(x => x._id === btn.dataset.hid);
         if (!h) return;
-        toggleOdeme(h._id, h.durum !== 'tahsil-edildi');
+        const alindi = h.durum !== 'tahsil-edildi';
+        // Anında görsel tepki
+        btn.classList.toggle('checked', alindi);
+        btn.title = alindi ? 'Geri al' : 'Ödeme alındı olarak işaretle';
+        btn.disabled = true;
+        toggleOdeme(h._id, alindi).finally(() => { btn.disabled = false; });
       });
     });
     el.querySelectorAll('.edit-hizmet-btn').forEach(btn => {
