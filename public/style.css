@@ -256,6 +256,21 @@ body {
 }
 .accent-card .summary-value { color: var(--accent); }
 .warn-card   .summary-value { color: var(--warn); }
+.usd-card         { border-color: color-mix(in srgb, #22c55e 30%, var(--border)); }
+.usd-card::before { background: color-mix(in srgb, #22c55e 8%, transparent); }
+.usd-card::after  { background: #22c55e; }
+.usd-card .summary-label { color: color-mix(in srgb, #22c55e 70%, var(--text-soft)); }
+.usd-card .summary-value { color: #22c55e; }
+.usd-tahsil-card         { border-color: color-mix(in srgb, #22c55e 20%, var(--border)); }
+.usd-tahsil-card::before { background: color-mix(in srgb, #22c55e 5%, transparent); }
+.usd-tahsil-card::after  { background: #22c55e; }
+.usd-tahsil-card .summary-label { color: color-mix(in srgb, #22c55e 60%, var(--text-soft)); }
+.usd-tahsil-card .summary-value { color: #22c55e; }
+.kombine-card         { border-color: color-mix(in srgb, #a78bfa 30%, var(--border)); }
+.kombine-card::before { background: color-mix(in srgb, #a78bfa 8%, transparent); }
+.kombine-card::after  { background: #a78bfa; }
+.kombine-card .summary-label { color: color-mix(in srgb, #a78bfa 70%, var(--text-soft)); }
+.kombine-card .summary-value { color: #a78bfa; }
 
 /* ── Section header ── */
 .section-header {

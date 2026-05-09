@@ -79,7 +79,13 @@
       </div>
       <div>
         <label>Fiyat (opsiyonel)</label>
-        <input type="number" id="hizmetFiyat" class="modal-input" placeholder="0.00" step="0.01" min="0" />
+        <div style="display:flex;gap:8px;">
+          <select id="hizmetParaBirimi" class="modal-input modal-select" style="width:90px;flex-shrink:0;">
+            <option value="TRY">₺ TL</option>
+            <option value="USD">$ USD</option>
+          </select>
+          <input type="number" id="hizmetFiyat" class="modal-input" placeholder="0.00" step="0.01" min="0" style="flex:1;" />
+        </div>
       </div>
     </div>
     <label>Açıklama *</label>
@@ -132,6 +138,15 @@
   let hizmetler = [];
   let editHizmetId = null;
   let deleteHizmetId = null;
+  let kurUSD = null;
+
+  async function fetchKur() {
+    try {
+      const res = await fetch('https://api.frankfurter.app/latest?from=USD&to=TRY');
+      const data = await res.json();
+      kurUSD = data.rates.TRY;
+    } catch { kurUSD = null; }
+  }
 
   function applyTheme(next) {
     document.documentElement.dataset.theme = next;
@@ -205,8 +220,25 @@
   }
 
   function updateToplam() {
-    const toplam = hizmetler.reduce((s, h) => s + (h.fiyat || 0), 0);
-    document.getElementById('toplamBadge').innerHTML = 'Toplam: ' + formatPara(toplam);
+    let tryT = 0, usdT = 0;
+    hizmetler.forEach(h => {
+      if (!h.fiyat) return;
+      if ((h.paraBirimi || 'TRY') === 'USD') usdT += h.fiyat;
+      else tryT += h.fiyat;
+    });
+    let html = '';
+    if (usdT > 0) {
+      const usdFmt = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2 }).format(usdT);
+      let kombine = '';
+      if (kurUSD) {
+        const komTL = tryT + usdT * kurUSD;
+        kombine = ` &nbsp;|&nbsp; Kombine: ${formatPara(komTL)}`;
+      }
+      html = `TL: ${formatPara(tryT)} &nbsp;|&nbsp; <span class="currency" style="font-family:inherit;">$</span>${usdFmt} USD${kombine}`;
+    } else {
+      html = 'Toplam: ' + formatPara(tryT);
+    }
+    document.getElementById('toplamBadge').innerHTML = html;
   }
 
   function renderHizmetler() {
@@ -230,7 +262,7 @@
         <span class="badge ${durumClass[h.durum]}">${durumLabels[h.durum] || h.durum}</span>
         <div class="hizmet-aciklama">${escHtml(h.aciklama)}</div>
         <span class="hizmet-tarih">${h.tarih ? formatTarih(h.tarih) : ''}</span>
-        <span class="hizmet-fiyat">${h.fiyat !== null && h.fiyat !== undefined ? formatPara(h.fiyat) : '<span style="opacity:0.3">—</span>'}</span>
+        <span class="hizmet-fiyat">${formatFiyat(h.fiyat, h.paraBirimi)}</span>
         <div class="hizmet-actions">
           <button class="btn-icon" onclick="openEditHizmet('${h._id}')">✎</button>
           <button class="btn-icon danger" onclick="openHizmetDeleteModal('${h._id}')">✕</button>
@@ -249,6 +281,7 @@
     document.getElementById('hizmetDurum').value = 'bekliyor';
     document.getElementById('hizmetTarih').value = '';
     document.getElementById('hizmetFiyat').value = '';
+    document.getElementById('hizmetParaBirimi').value = 'TRY';
     document.getElementById('hizmetAciklama').value = '';
     document.getElementById('hizmetError').textContent = '';
     document.getElementById('hizmetModal').classList.add('open');
@@ -272,6 +305,7 @@
     document.getElementById('hizmetDurum').value = h.durum;
     document.getElementById('hizmetTarih').value = h.tarih ? h.tarih.slice(0,10) : '';
     document.getElementById('hizmetFiyat').value = h.fiyat !== null && h.fiyat !== undefined ? h.fiyat : '';
+    document.getElementById('hizmetParaBirimi').value = h.paraBirimi || 'TRY';
     document.getElementById('hizmetAciklama').value = h.aciklama;
     document.getElementById('hizmetError').textContent = '';
     document.getElementById('hizmetModal').classList.add('open');
@@ -293,9 +327,10 @@
     if (!aciklama) { errEl.textContent = 'Açıklama gerekli.'; return; }
     if (tipSec === 'diger' && !tipOzel) { errEl.textContent = 'Lütfen hizmet tipini yazın.'; return; }
     errEl.textContent = '';
+    const paraBirimi = document.getElementById('hizmetParaBirimi').value;
     const url = editHizmetId ? `/api/hizmetler/${editHizmetId}` : '/api/hizmetler';
     const method = editHizmetId ? 'PUT' : 'POST';
-    const body = { tip, durum, tarih, fiyat, aciklama };
+    const body = { tip, durum, tarih, fiyat, paraBirimi, aciklama };
     if (!editHizmetId) body.firma = firmaId;
     const res = await fetch(url, {
       method, headers: { 'Content-Type': 'application/json' },
@@ -357,6 +392,21 @@
     return `<span class="currency">₺</span>${formatted}`;
   }
 
+  function formatFiyat(fiyat, paraBirimi) {
+    if (fiyat === null || fiyat === undefined) return '<span style="opacity:0.3">—</span>';
+    if ((paraBirimi || 'TRY') === 'USD') {
+      const usdFmt = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(fiyat);
+      let tlKarsilik = '';
+      if (kurUSD) {
+        const tl = fiyat * kurUSD;
+        const tlFmt = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(tl);
+        tlKarsilik = ` <span style="opacity:0.55;font-size:11px;">(₺${tlFmt})</span>`;
+      }
+      return `<span class="currency" style="font-family:inherit;">$</span>${usdFmt}${tlKarsilik}`;
+    }
+    return formatPara(fiyat);
+  }
+
   function formatTarih(t) {
     if (!t) return '';
     return new Date(t).toLocaleDateString('tr-TR');
@@ -371,7 +421,7 @@
   });
 
   initTheme();
-  checkAuth().then(() => loadDetay());
+  checkAuth().then(() => { fetchKur().then(() => loadDetay()); });
 </script>
 </body>
 </html>

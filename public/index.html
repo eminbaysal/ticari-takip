@@ -31,16 +31,28 @@
   <!-- Özet Kartlar -->
   <div class="summary-grid" id="summaryGrid">
     <div class="summary-card">
-      <div class="summary-label">Genel Toplam</div>
+      <div class="summary-label">TL Toplam</div>
       <div class="summary-value" id="sumGenel">—</div>
     </div>
     <div class="summary-card accent-card">
-      <div class="summary-label">Tahsil Edilen</div>
+      <div class="summary-label">TL Tahsil Edilen</div>
       <div class="summary-value" id="sumTahsil">—</div>
     </div>
     <div class="summary-card warn-card">
-      <div class="summary-label">Bekleyen</div>
+      <div class="summary-label">TL Bekleyen</div>
       <div class="summary-value" id="sumBekleyen">—</div>
+    </div>
+    <div class="summary-card usd-card">
+      <div class="summary-label">USD Toplam</div>
+      <div class="summary-value" id="sumUsdGenel">—</div>
+    </div>
+    <div class="summary-card usd-tahsil-card">
+      <div class="summary-label">USD Tahsil Edilen</div>
+      <div class="summary-value" id="sumUsdTahsil">—</div>
+    </div>
+    <div class="summary-card kombine-card">
+      <div class="summary-label">Kombine Toplam (TL)</div>
+      <div class="summary-value" id="sumKombine">—</div>
     </div>
   </div>
 
@@ -120,6 +132,15 @@
   let editFirmaId = null;
   let deleteFirmaId = null;
   let seciliFirmaId = null;
+  let kurUSD = null;
+
+  async function fetchKur() {
+    try {
+      const res = await fetch('https://api.frankfurter.app/latest?from=USD&to=TRY');
+      const data = await res.json();
+      kurUSD = data.rates.TRY;
+    } catch { kurUSD = null; }
+  }
 
   const tipLabels = {
     'danismanlik': 'Danışmanlık',
@@ -163,9 +184,24 @@
     const res = await fetch('/api/hizmetler/ozet');
     if (!res.ok) return;
     const d = await res.json();
-    document.getElementById('sumGenel').innerHTML   = formatPara(d.genelToplam);
-    document.getElementById('sumTahsil').innerHTML  = formatPara(d.tahsilEdilen);
-    document.getElementById('sumBekleyen').innerHTML = formatPara(d.bekleyen);
+    document.getElementById('sumGenel').innerHTML    = formatPara(d.tryToplam);
+    document.getElementById('sumTahsil').innerHTML   = formatPara(d.tryTahsil);
+    document.getElementById('sumBekleyen').innerHTML = formatPara(d.tryBekleyen);
+
+    const usdFmt = v => {
+      const s = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
+      let tl = kurUSD ? ` <span style="opacity:0.55;font-size:12px;">(₺${new Intl.NumberFormat('tr-TR',{minimumFractionDigits:0,maximumFractionDigits:0}).format(v*kurUSD)})</span>` : '';
+      return `<span class="currency" style="font-family:inherit;">$</span>${s}${tl}`;
+    };
+    document.getElementById('sumUsdGenel').innerHTML  = d.usdToplam  ? usdFmt(d.usdToplam)  : '—';
+    document.getElementById('sumUsdTahsil').innerHTML = d.usdTahsil  ? usdFmt(d.usdTahsil)  : '—';
+
+    if (kurUSD && d.usdToplam) {
+      const kombine = d.tryToplam + d.usdToplam * kurUSD;
+      document.getElementById('sumKombine').innerHTML = formatPara(kombine);
+    } else {
+      document.getElementById('sumKombine').innerHTML = formatPara(d.tryToplam);
+    }
   }
 
   async function loadFirmalar() {
@@ -327,7 +363,7 @@
   });
 
   initTheme();
-  checkAuth().then(() => { loadOzet(); loadFirmalar(); });
+  checkAuth().then(() => { fetchKur().then(() => { loadOzet(); loadFirmalar(); }); });
 </script>
 </body>
 </html>

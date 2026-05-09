@@ -7,16 +7,22 @@ const Firma = require('../models/Firma');
 router.get('/ozet', async (req, res) => {
   try {
     const hizmetler = await Hizmet.find({ fiyat: { $ne: null } });
-    let genelToplam = 0;
-    let tahsilEdilen = 0;
-    let bekleyen = 0;
+    let tryToplam = 0, tryTahsil = 0, tryBekleyen = 0;
+    let usdToplam = 0, usdTahsil = 0, usdBekleyen = 0;
     hizmetler.forEach(h => {
       const f = h.fiyat || 0;
-      genelToplam += f;
-      if (h.durum === 'tahsil-edildi') tahsilEdilen += f;
-      else bekleyen += f;
+      const pb = h.paraBirimi || 'TRY';
+      if (pb === 'USD') {
+        usdToplam += f;
+        if (h.durum === 'tahsil-edildi') usdTahsil += f;
+        else usdBekleyen += f;
+      } else {
+        tryToplam += f;
+        if (h.durum === 'tahsil-edildi') tryTahsil += f;
+        else tryBekleyen += f;
+      }
     });
-    res.json({ genelToplam, tahsilEdilen, bekleyen });
+    res.json({ tryToplam, tryTahsil, tryBekleyen, usdToplam, usdTahsil, usdBekleyen });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -25,7 +31,7 @@ router.get('/ozet', async (req, res) => {
 // Firma hizmet ekle
 router.post('/', async (req, res) => {
   try {
-    const { firma, tip, aciklama, tarih, fiyat, durum } = req.body;
+    const { firma, tip, aciklama, tarih, fiyat, paraBirimi, durum } = req.body;
     if (!firma) return res.status(400).json({ error: 'Firma ID gerekli.' });
     if (!tip) return res.status(400).json({ error: 'Hizmet tipi gerekli.' });
     if (!aciklama) return res.status(400).json({ error: 'Açıklama gerekli.' });
@@ -37,6 +43,7 @@ router.post('/', async (req, res) => {
       aciklama,
       tarih: tarih || null,
       fiyat: fiyat !== '' && fiyat !== undefined ? parseFloat(fiyat) : null,
+      paraBirimi: paraBirimi || 'TRY',
       durum: durum || 'bekliyor'
     });
     await hizmet.save();
@@ -49,7 +56,7 @@ router.post('/', async (req, res) => {
 // Hizmet güncelle
 router.put('/:id', async (req, res) => {
   try {
-    const { tip, aciklama, tarih, fiyat, durum } = req.body;
+    const { tip, aciklama, tarih, fiyat, paraBirimi, durum } = req.body;
     if (!tip) return res.status(400).json({ error: 'Hizmet tipi gerekli.' });
     if (!aciklama) return res.status(400).json({ error: 'Açıklama gerekli.' });
     const hizmet = await Hizmet.findByIdAndUpdate(
@@ -59,6 +66,7 @@ router.put('/:id', async (req, res) => {
         aciklama,
         tarih: tarih || null,
         fiyat: fiyat !== '' && fiyat !== undefined ? parseFloat(fiyat) : null,
+        paraBirimi: paraBirimi || 'TRY',
         durum: durum || 'bekliyor'
       },
       { new: true, runValidators: true }
