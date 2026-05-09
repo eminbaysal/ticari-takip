@@ -6,7 +6,7 @@ const hizmetSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  aciklama: { type: String, required: true, trim: true },
+  aciklama: { type: String, required: false, trim: true, default: '' },
   tarih: { type: Date, default: null },
   urunAdi: { type: String, trim: true, default: '' },
   adet: { type: Number, default: null },

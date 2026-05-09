@@ -430,7 +430,7 @@
     const fiyat = document.getElementById('hizmetFiyat').value;
     const aciklama = document.getElementById('hizmetAciklama').value.trim();
     const errEl = document.getElementById('hizmetError');
-    if (!aciklama) { errEl.textContent = 'Açıklama gerekli.'; return; }
+    if (!aciklama && tipSec !== 'urun-tedariki') { errEl.textContent = 'Açıklama gerekli.'; return; }
     if (tipSec === 'diger' && !tipOzel) { errEl.textContent = 'Lütfen hizmet tipini yazın.'; return; }
     const urunAdi = document.getElementById('urunAdi').value.trim();
     const urunAdet = document.getElementById('urunAdet').value;

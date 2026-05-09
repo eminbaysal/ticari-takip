@@ -34,7 +34,7 @@ router.post('/', async (req, res) => {
     const { firma, tip, aciklama, tarih, fiyat, paraBirimi, durum, urunAdi, adet } = req.body;
     if (!firma) return res.status(400).json({ error: 'Firma ID gerekli.' });
     if (!tip) return res.status(400).json({ error: 'Hizmet tipi gerekli.' });
-    if (!aciklama) return res.status(400).json({ error: 'Açıklama gerekli.' });
+    if (!aciklama && tip !== 'urun-tedariki') return res.status(400).json({ error: 'Açıklama gerekli.' });
     const firmaDoc = await Firma.findById(firma);
     if (!firmaDoc) return res.status(404).json({ error: 'Firma bulunamadı.' });
     const hizmet = new Hizmet({
@@ -60,7 +60,7 @@ router.put('/:id', async (req, res) => {
   try {
     const { tip, aciklama, tarih, fiyat, paraBirimi, durum, urunAdi, adet } = req.body;
     if (!tip) return res.status(400).json({ error: 'Hizmet tipi gerekli.' });
-    if (!aciklama) return res.status(400).json({ error: 'Açıklama gerekli.' });
+    if (!aciklama && tip !== 'urun-tedariki') return res.status(400).json({ error: 'Açıklama gerekli.' });
     const hizmet = await Hizmet.findByIdAndUpdate(
       req.params.id,
       {
