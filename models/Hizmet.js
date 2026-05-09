@@ -10,6 +10,7 @@ const hizmetSchema = new mongoose.Schema({
   tarih: { type: Date, default: null },
   urunAdi: { type: String, trim: true, default: '' },
   adet: { type: Number, default: null },
+  faturaTarihi: { type: Date, default: null },
   fiyat: { type: Number, default: null },
   paraBirimi: { type: String, enum: ['TRY', 'USD'], default: 'TRY' },
   durum: {

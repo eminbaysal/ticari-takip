@@ -78,12 +78,16 @@
       </div>
       <div>
         <label>Durum *</label>
-        <select id="hizmetDurum" class="modal-input modal-select">
+        <select id="hizmetDurum" class="modal-input modal-select" onchange="onDurumChange()">
           <option value="bekliyor">Bekliyor</option>
           <option value="tamamlandi">Tamamlandı</option>
           <option value="fatura-kesildi">Fatura Kesildi</option>
           <option value="tahsil-edildi">Tahsil Edildi</option>
         </select>
+        <div id="faturaTarihiWrap" style="display:none;margin-top:6px;">
+          <label style="font-size:12px;margin-bottom:3px;display:block;">Fatura Tarihi</label>
+          <input type="date" id="faturaTarihi" class="modal-input" />
+        </div>
       </div>
       <div>
         <label>Tarih (opsiyonel)</label>
@@ -260,6 +264,13 @@
     'diger': 'Diğer'
   };
 
+  function onDurumChange() {
+    const durum = document.getElementById('hizmetDurum').value;
+    const wrap = document.getElementById('faturaTarihiWrap');
+    wrap.style.display = durum === 'fatura-kesildi' ? 'block' : 'none';
+    if (durum !== 'fatura-kesildi') document.getElementById('faturaTarihi').value = '';
+  }
+
   function onTipChange() {
     const tip = document.getElementById('hizmetTip').value;
     const ozel = document.getElementById('hizmetTipOzel');
@@ -380,6 +391,8 @@
     document.getElementById('urunSection').style.display = 'none';
     document.getElementById('urunAdi').value = '';
     document.getElementById('urunAdet').value = '';
+    document.getElementById('faturaTarihiWrap').style.display = 'none';
+    document.getElementById('faturaTarihi').value = '';
     document.getElementById('hizmetDurum').value = 'bekliyor';
     document.getElementById('hizmetTarih').value = '';
     document.getElementById('hizmetFiyat').value = '';
@@ -405,6 +418,14 @@
       ozelEl.style.display = 'block';
     }
     document.getElementById('hizmetDurum').value = h.durum;
+    const ftwrap = document.getElementById('faturaTarihiWrap');
+    if (h.durum === 'fatura-kesildi') {
+      ftwrap.style.display = 'block';
+      document.getElementById('faturaTarihi').value = h.faturaTarihi ? h.faturaTarihi.slice(0,10) : '';
+    } else {
+      ftwrap.style.display = 'none';
+      document.getElementById('faturaTarihi').value = '';
+    }
     document.getElementById('hizmetTarih').value = h.tarih ? h.tarih.slice(0,10) : '';
     document.getElementById('hizmetFiyat').value = h.fiyat !== null && h.fiyat !== undefined ? h.fiyat : '';
     document.getElementById('hizmetParaBirimi').value = h.paraBirimi || 'TRY';
@@ -460,7 +481,8 @@
     const paraBirimi = document.getElementById('hizmetParaBirimi').value;
     const url = editHizmetId ? `/api/hizmetler/${editHizmetId}` : '/api/hizmetler';
     const method = editHizmetId ? 'PUT' : 'POST';
-    const body = { tip, durum, tarih, fiyat, paraBirimi, aciklama, urunAdi, adet: urunAdet };
+    const faturaTarihi = document.getElementById('faturaTarihi').value;
+    const body = { tip, durum, tarih, fiyat, paraBirimi, aciklama, urunAdi, adet: urunAdet, faturaTarihi };
     if (!editHizmetId) body.firma = firmaId;
     const res = await fetch(url, {
       method, headers: { 'Content-Type': 'application/json' },
