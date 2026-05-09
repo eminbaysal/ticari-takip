@@ -79,9 +79,12 @@
 
       <div class="onizleme-icerik" id="onizlemeIcerik" style="display:none;" ondblclick="if(seciliFirmaId) window.location.href='/firma/'+seciliFirmaId">
         <div class="onizleme-header">
-          <div>
-            <div class="onizleme-ad" id="onizlemeAd"></div>
-            <div class="onizleme-not" id="onizlemeNot"></div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div id="onizlemeLogo"></div>
+            <div>
+              <div class="onizleme-ad" id="onizlemeAd"></div>
+              <div class="onizleme-not" id="onizlemeNot"></div>
+            </div>
           </div>
           <div class="onizleme-header-sag">
             <div id="onizlemeToplam" style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;"></div>
@@ -106,6 +109,8 @@
     </div>
     <label>Firma Adı *</label>
     <input type="text" id="firmaAd" class="modal-input" />
+    <label>Web Sitesi (opsiyonel)</label>
+    <input type="text" id="firmaWebsite" class="modal-input" placeholder="https://örnek.com" />
     <label>Not (opsiyonel)</label>
     <textarea id="firmaNot" class="modal-input modal-textarea"></textarea>
     <div class="modal-footer">
@@ -133,6 +138,7 @@
 
 <script>
   let tumFirmalar = [];
+  let firmaMap = {};
   let editFirmaId = null;
   let deleteFirmaId = null;
   let seciliFirmaId = null;
@@ -223,6 +229,8 @@
     const res = await fetch('/api/firmalar');
     if (!res.ok) { if (res.status === 401) window.location.href = '/login'; return; }
     tumFirmalar = await res.json();
+    firmaMap = {};
+    tumFirmalar.forEach(f => firmaMap[f._id] = f);
     renderFirmalar(tumFirmalar);
   }
 
@@ -238,15 +246,36 @@
         <span>İşlemler</span>
       </div>
       ${firmalar.map(f => `
-      <div class="firma-liste-row ${seciliFirmaId === f._id ? 'aktif' : ''}" onclick="selectFirma('${f._id}')" ondblclick="window.location.href='/firma/${f._id}'" style="cursor:pointer;">
-        <div class="firma-liste-ad">${escHtml(f.ad)}</div>
+      <div class="firma-liste-row ${seciliFirmaId === f._id ? 'aktif' : ''}" data-id="${f._id}" style="cursor:pointer;">
+        <div style="display:flex;align-items:center;gap:11px;min-width:0;">
+          ${firmaLogo(f)}
+          <div class="firma-liste-ad">${escHtml(f.ad)}</div>
+        </div>
         <div class="firma-liste-actions">
-          <button class="btn-icon" onclick="event.stopPropagation();openEditFirma('${f._id}','${escAttr(f.ad)}','${escAttr(f.not||'')}')">✎</button>
-          <button class="btn-icon danger" onclick="event.stopPropagation();openDeleteModal('${f._id}')">✕</button>
+          <button class="btn-icon edit-btn" data-id="${f._id}">✎</button>
+          <button class="btn-icon danger delete-btn" data-id="${f._id}">✕</button>
         </div>
       </div>
       `).join('')}
     </div>`;
+
+    el.querySelectorAll('.firma-liste-row').forEach(row => {
+      row.addEventListener('click', () => selectFirma(row.dataset.id));
+      row.addEventListener('dblclick', () => window.location.href = '/firma/' + row.dataset.id);
+    });
+    el.querySelectorAll('.edit-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const f = firmaMap[btn.dataset.id];
+        if (f) openEditFirma(f._id, f.ad, f.website || '', f.not || '');
+      });
+    });
+    el.querySelectorAll('.delete-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        openDeleteModal(btn.dataset.id);
+      });
+    });
   }
 
   async function selectFirma(id) {
@@ -274,6 +303,7 @@
     const ipucu = document.getElementById('firmaIpucu');
     if (ipucu) ipucu.style.display = 'none';
 
+    document.getElementById('onizlemeLogo').innerHTML  = firmaLogo(d.firma);
     document.getElementById('onizlemeAd').textContent  = d.firma.ad;
     document.getElementById('onizlemeNot').textContent = d.firma.not || '';
     document.getElementById('onizlemeLink').href = `/firma/${id}`;
@@ -330,15 +360,17 @@
     editFirmaId = null;
     document.getElementById('firmaModalBaslik').textContent = 'Firma Ekle';
     document.getElementById('firmaAd').value = '';
+    document.getElementById('firmaWebsite').value = '';
     document.getElementById('firmaNot').value = '';
     document.getElementById('firmaError').textContent = '';
     document.getElementById('firmaModal').classList.add('open');
   }
 
-  function openEditFirma(id, ad, not) {
+  function openEditFirma(id, ad, website, not) {
     editFirmaId = id;
     document.getElementById('firmaModalBaslik').textContent = 'Firma Düzenle';
     document.getElementById('firmaAd').value = ad;
+    document.getElementById('firmaWebsite').value = website || localStorage.getItem('fw_' + id) || '';
     document.getElementById('firmaNot').value = not;
     document.getElementById('firmaError').textContent = '';
     document.getElementById('firmaModal').classList.add('open');
@@ -347,16 +379,23 @@
   function closeFirmaModal() { document.getElementById('firmaModal').classList.remove('open'); }
 
   async function saveFirma() {
-    const ad  = document.getElementById('firmaAd').value.trim();
-    const not = document.getElementById('firmaNot').value.trim();
-    const errEl = document.getElementById('firmaError');
+    const ad      = document.getElementById('firmaAd').value.trim();
+    const website = document.getElementById('firmaWebsite').value.trim();
+    const not     = document.getElementById('firmaNot').value.trim();
+    const errEl   = document.getElementById('firmaError');
     if (!ad) { errEl.textContent = 'Firma adı gerekli.'; return; }
     errEl.textContent = '';
     const url    = editFirmaId ? `/api/firmalar/${editFirmaId}` : '/api/firmalar';
     const method = editFirmaId ? 'PUT' : 'POST';
-    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ad, not }) });
+    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ad, website, not }) });
     const data = await res.json();
     if (!res.ok) { errEl.textContent = data.error || 'Hata oluştu.'; return; }
+    // Website'yi localStorage'a da kaydet (DB bağımsız logo için)
+    const firmaId = editFirmaId || data._id;
+    if (firmaId) {
+      if (website) localStorage.setItem('fw_' + firmaId, website);
+      else localStorage.removeItem('fw_' + firmaId);
+    }
     closeFirmaModal();
     loadFirmalar();
     loadOzet();
@@ -417,6 +456,34 @@
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
+  function escAttr(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/\r/g,'').replace(/\n/g,' ');
+  }
+
+  const avatarRenkler = ['#4f8ef5','#22c55e','#f59e0b','#a78bfa','#f07070','#06b6d4','#ec4899','#84cc16'];
+  function avatarRenk(ad) {
+    let hash = 0;
+    for (let i = 0; i < ad.length; i++) hash = ad.charCodeAt(i) + ((hash << 5) - hash);
+    return avatarRenkler[Math.abs(hash) % avatarRenkler.length];
+  }
+
+  function firmaWebsite(f) {
+    return f.website || localStorage.getItem('fw_' + f._id) || '';
+  }
+
+  function firmaLogo(f) {
+    const harf = (f.ad || '?')[0].toUpperCase();
+    const renk = avatarRenk(f.ad || '');
+    const site = firmaWebsite(f);
+    if (site) {
+      const domain = site.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+      return `<img src="https://www.google.com/s2/favicons?domain=${domain}&sz=64" class="firma-logo-img"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+        <div class="firma-logo-avatar" style="background:${renk};display:none;">${harf}</div>`;
+    }
+    return `<div class="firma-logo-avatar" style="background:${renk};">${harf}</div>`;
+  }
+
   const tooltip = document.getElementById('aciklamaTooltip');
   function showTooltip(e, el) {
     if (el.scrollWidth <= el.clientWidth) return;
@@ -440,10 +507,6 @@
     document.querySelectorAll('.hizmet-aciklama').forEach(el => {
       if (el._moveHandler) { el.removeEventListener('mousemove', el._moveHandler); delete el._moveHandler; }
     });
-  }
-
-  function escAttr(s) {
-    return String(s).replace(/'/g,'&#39;').replace(/"/g,'&quot;');
   }
 
   document.querySelectorAll('.modal-overlay').forEach(o => {

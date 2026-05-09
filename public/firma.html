@@ -33,6 +33,7 @@
       <a href="/" class="back-arrow-btn" title="Ana Sayfa">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><polyline points="15 18 9 12 15 6"/></svg>
       </a>
+      <div id="firmaLogoEl"></div>
       <div>
         <h1 id="firmaBaslik">—</h1>
         <p class="firma-not-text" id="firmaNotText"></p>
@@ -147,6 +148,26 @@
 <script>
   const firmaId = window.location.pathname.split('/firma/')[1];
   let firmaData = null;
+
+  const avatarRenkler = ['#4f8ef5','#22c55e','#f59e0b','#a78bfa','#f07070','#06b6d4','#ec4899','#84cc16'];
+  function avatarRenk(ad) {
+    let hash = 0;
+    for (let i = 0; i < ad.length; i++) hash = ad.charCodeAt(i) + ((hash << 5) - hash);
+    return avatarRenkler[Math.abs(hash) % avatarRenkler.length];
+  }
+  function renderFirmaLogo(f) {
+    const harf = (f.ad || '?')[0].toUpperCase();
+    const renk = avatarRenk(f.ad || '');
+    const site = f.website || localStorage.getItem('fw_' + f._id) || '';
+    if (site) {
+      const domain = site.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+      return `<img src="https://www.google.com/s2/favicons?domain=${domain}&sz=64"
+        style="width:40px;height:40px;border-radius:9px;object-fit:contain;background:#fff;"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+        <div style="width:40px;height:40px;border-radius:9px;display:none;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:#fff;background:${renk};">${harf}</div>`;
+    }
+    return `<div style="width:40px;height:40px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:#fff;background:${renk};">${harf}</div>`;
+  }
   let hizmetler = [];
   let editHizmetId = null;
   let deleteHizmetId = null;
@@ -258,6 +279,7 @@
     firmaData = d.firma;
     hizmetler = d.hizmetler;
     document.title = `${firmaData.ad} — Ödeme Takip`;
+    document.getElementById('firmaLogoEl').innerHTML = renderFirmaLogo(firmaData);
     document.getElementById('firmaBaslik').textContent = firmaData.ad;
     document.getElementById('firmaNotText').textContent = firmaData.not || '';
     renderHizmetler();

@@ -16,9 +16,9 @@ router.get('/', async (req, res) => {
 // Firma oluştur
 router.post('/', async (req, res) => {
   try {
-    const { ad, not } = req.body;
+    const { ad, not, website } = req.body;
     if (!ad) return res.status(400).json({ error: 'Firma adı gerekli.' });
-    const firma = new Firma({ ad, not });
+    const firma = new Firma({ ad, not, website });
     await firma.save();
     res.status(201).json(firma);
   } catch (err) {
@@ -29,11 +29,11 @@ router.post('/', async (req, res) => {
 // Firma güncelle
 router.put('/:id', async (req, res) => {
   try {
-    const { ad, not } = req.body;
+    const { ad, not, website } = req.body;
     if (!ad) return res.status(400).json({ error: 'Firma adı gerekli.' });
     const firma = await Firma.findByIdAndUpdate(
       req.params.id,
-      { ad, not },
+      { ad, not, website },
       { new: true, runValidators: true }
     );
     if (!firma) return res.status(404).json({ error: 'Firma bulunamadı.' });
