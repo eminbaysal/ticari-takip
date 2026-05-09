@@ -602,6 +602,9 @@
   function escHtml(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
+  function escAttr(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/'/g,'&#39;').replace(/"/g,'&quot;').replace(/\r/g,'').replace(/\n/g,' ');
+  }
 
   const tooltip = document.getElementById('aciklamaTooltip');
   function showTooltip(e, el) {
