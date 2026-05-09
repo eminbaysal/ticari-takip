@@ -260,7 +260,13 @@
     </div>`;
 
     el.querySelectorAll('.firma-liste-row').forEach(row => {
-      row.addEventListener('click', () => selectFirma(row.dataset.id));
+      row.addEventListener('click', () => {
+        if (window.innerWidth < 768) {
+          window.location.href = '/firma/' + row.dataset.id;
+        } else {
+          selectFirma(row.dataset.id);
+        }
+      });
       row.addEventListener('dblclick', () => window.location.href = '/firma/' + row.dataset.id);
     });
     el.querySelectorAll('.edit-btn').forEach(btn => {
