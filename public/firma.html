@@ -99,6 +99,19 @@
         </div>
       </div>
     </div>
+    <!-- Ürün Tedariği alanları -->
+    <div id="urunSection" style="display:none;margin-top:2px;">
+      <div class="modal-grid">
+        <div>
+          <label>Ürün Adı *</label>
+          <input type="text" id="urunAdi" class="modal-input" placeholder="Ürün adını girin" />
+        </div>
+        <div>
+          <label>Adet *</label>
+          <input type="number" id="urunAdet" class="modal-input" placeholder="1" min="1" step="1" />
+        </div>
+      </div>
+    </div>
     <label>Açıklama *</label>
     <textarea id="hizmetAciklama" class="modal-input modal-textarea"></textarea>
     <div class="modal-footer">
@@ -247,13 +260,22 @@
   };
 
   function onTipChange() {
+    const tip = document.getElementById('hizmetTip').value;
     const ozel = document.getElementById('hizmetTipOzel');
-    if (document.getElementById('hizmetTip').value === 'diger') {
+    const urunSec = document.getElementById('urunSection');
+    if (tip === 'diger') {
       ozel.style.display = 'block';
       ozel.focus();
     } else {
       ozel.style.display = 'none';
       ozel.value = '';
+    }
+    if (tip === 'urun-tedariki') {
+      urunSec.style.display = 'block';
+    } else {
+      urunSec.style.display = 'none';
+      document.getElementById('urunAdi').value = '';
+      document.getElementById('urunAdet').value = '';
     }
   }
   const durumLabels = {
@@ -329,7 +351,9 @@
       <div class="hizmet-row">
         <span class="tip-badge">${escHtml(tipLabels[h.tip] || h.tip)}</span>
         <span class="badge ${durumClass[h.durum]}">${durumLabels[h.durum] || h.durum}</span>
-        <div class="hizmet-aciklama" onmouseenter="showTooltip(event,this)" onmouseleave="hideTooltip()">${escHtml(h.aciklama)}</div>
+        <div class="hizmet-aciklama" onmouseenter="showTooltip(event,this)" onmouseleave="hideTooltip()">
+          ${h.tip === 'urun-tedariki' && h.urunAdi ? `<span style="font-weight:600;">${escHtml(h.urunAdi)}</span>${h.adet ? ` <span style="opacity:0.6;font-size:11px;">× ${h.adet}</span>` : ''}<br><span style="opacity:0.7;font-size:11px;">` : ''}${escHtml(h.aciklama)}${h.tip === 'urun-tedariki' && h.urunAdi ? '</span>' : ''}
+        </div>
         <span class="hizmet-tarih">${h.tarih ? formatTarih(h.tarih) : ''}</span>
         <span class="hizmet-fiyat">${formatFiyat(h.fiyat, h.paraBirimi)}</span>
         <div class="hizmet-actions">
@@ -347,6 +371,9 @@
     document.getElementById('hizmetTip').value = 'danismanlik';
     document.getElementById('hizmetTipOzel').value = '';
     document.getElementById('hizmetTipOzel').style.display = 'none';
+    document.getElementById('urunSection').style.display = 'none';
+    document.getElementById('urunAdi').value = '';
+    document.getElementById('urunAdet').value = '';
     document.getElementById('hizmetDurum').value = 'bekliyor';
     document.getElementById('hizmetTarih').value = '';
     document.getElementById('hizmetFiyat').value = '';
@@ -377,6 +404,16 @@
     document.getElementById('hizmetParaBirimi').value = h.paraBirimi || 'TRY';
     document.getElementById('hizmetAciklama').value = h.aciklama;
     document.getElementById('hizmetError').textContent = '';
+    const urunSec = document.getElementById('urunSection');
+    if (h.tip === 'urun-tedariki') {
+      urunSec.style.display = 'block';
+      document.getElementById('urunAdi').value = h.urunAdi || '';
+      document.getElementById('urunAdet').value = h.adet !== null && h.adet !== undefined ? h.adet : '';
+    } else {
+      urunSec.style.display = 'none';
+      document.getElementById('urunAdi').value = '';
+      document.getElementById('urunAdet').value = '';
+    }
     document.getElementById('hizmetModal').classList.add('open');
   }
 
@@ -395,11 +432,14 @@
     const errEl = document.getElementById('hizmetError');
     if (!aciklama) { errEl.textContent = 'Açıklama gerekli.'; return; }
     if (tipSec === 'diger' && !tipOzel) { errEl.textContent = 'Lütfen hizmet tipini yazın.'; return; }
+    const urunAdi = document.getElementById('urunAdi').value.trim();
+    const urunAdet = document.getElementById('urunAdet').value;
+    if (tipSec === 'urun-tedariki' && !urunAdi) { errEl.textContent = 'Ürün adı gerekli.'; return; }
     errEl.textContent = '';
     const paraBirimi = document.getElementById('hizmetParaBirimi').value;
     const url = editHizmetId ? `/api/hizmetler/${editHizmetId}` : '/api/hizmetler';
     const method = editHizmetId ? 'PUT' : 'POST';
-    const body = { tip, durum, tarih, fiyat, paraBirimi, aciklama };
+    const body = { tip, durum, tarih, fiyat, paraBirimi, aciklama, urunAdi, adet: urunAdet };
     if (!editHizmetId) body.firma = firmaId;
     const res = await fetch(url, {
       method, headers: { 'Content-Type': 'application/json' },
