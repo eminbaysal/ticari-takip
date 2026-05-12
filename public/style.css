@@ -1057,6 +1057,26 @@ body {
   color: #f59e0b;
 }
 
+/* ── USD → TL kur snapshot göstergesi ── */
+.tl-karsiligi-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  line-height: 1.2;
+}
+.tl-karsiligi {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--success);
+  opacity: 0.85;
+}
+.kur-bilgi {
+  font-size: 9px;
+  color: var(--text-muted);
+  opacity: 0.75;
+}
+
 /* ── Buttons ── */
 .btn-primary {
   background: var(--accent);

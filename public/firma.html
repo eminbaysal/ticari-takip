@@ -311,14 +311,23 @@
   function getStatusBadge(h) {
     const isFatura = h.faturaKesildi === true || h.durum === 'fatura-kesildi';
     const isTahsil = h.tahsilEdildi  === true || h.durum === 'tahsil-edildi';
+    const isUSD    = (h.paraBirimi || 'TRY') === 'USD';
+
+    function tlSatir(tl, kur) {
+      if (!tl) return '';
+      const tlFmt  = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(tl);
+      const kurFmt = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(kur);
+      return `<div class="tl-karsiligi-wrap"><span class="tl-karsiligi">₺${tlFmt}</span><span class="kur-bilgi">@${kurFmt}</span></div>`;
+    }
+
     if (isFatura && isTahsil) {
       return `<div style="display:flex;flex-direction:column;gap:3px;padding:0 4px;">
-        <span class="badge badge-fatura" style="font-size:9px;padding:2px 6px;width:auto;justify-content:center;">Fatura ✓</span>
-        <span class="badge badge-glowing" style="font-size:9px;padding:2px 6px;width:auto;justify-content:center;">Ödeme ✓</span>
+        <div><span class="badge badge-fatura" style="font-size:9px;padding:2px 6px;">Fatura ✓</span>${isUSD ? tlSatir(h.faturaTL, h.faturaKuru) : ''}</div>
+        <div><span class="badge badge-glowing" style="font-size:9px;padding:2px 6px;">Ödeme ✓</span>${isUSD ? tlSatir(h.odemeTL, h.odemeKuru) : ''}</div>
       </div>`;
     }
-    if (isTahsil) return `<span class="badge badge-glowing">Ödeme Alındı ✓</span>`;
-    if (isFatura) return `<span class="badge badge-fatura">Fatura Kesildi</span>`;
+    if (isTahsil) return `<div><span class="badge badge-glowing">Ödeme Alındı ✓</span>${isUSD ? tlSatir(h.odemeTL, h.odemeKuru) : ''}</div>`;
+    if (isFatura) return `<div><span class="badge badge-fatura">Fatura Kesildi</span>${isUSD ? tlSatir(h.faturaTL, h.faturaKuru) : ''}</div>`;
     return `<span class="badge ${durumClass[h.durum] || 'badge-warn'}">${durumLabels[h.durum] || h.durum}</span>`;
   }
 
@@ -399,7 +408,7 @@
           }
         </div>
         <span class="hizmet-tarih">${h.tarih ? formatTarih(h.tarih) : ''}</span>
-        <span class="hizmet-fiyat">${formatFiyat(h.fiyat, h.paraBirimi)}</span>
+        <span class="hizmet-fiyat">${formatFiyat(h.fiyat, h.paraBirimi, h)}</span>
         <div style="display:flex;align-items:center;justify-content:center;gap:5px;">
           <button class="action-icon-btn fatura-btn${isFatura ? ' checked' : ''}" data-hid="${h._id}" title="Fatura Kesildi">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1z"/><path d="M16 8H8M16 12H8M12 16H8"/></svg>
@@ -488,10 +497,14 @@
   }
 
   async function toggleFatura(id, aktif) {
+    const h = hizmetler.find(x => x._id === id);
+    const isUSD = h && (h.paraBirimi || 'TRY') === 'USD';
+    const body  = { faturaKesildi: aktif };
+    if (isUSD && aktif && kurUSD) body.kurUSD = kurUSD;
     const res = await fetch(`/api/hizmetler/${id}/flags`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ faturaKesildi: aktif })
+      body: JSON.stringify(body)
     });
     if (res.ok) {
       const updated = await res.json();
@@ -503,10 +516,14 @@
   }
 
   async function toggleOdeme(id, aktif) {
+    const h = hizmetler.find(x => x._id === id);
+    const isUSD = h && (h.paraBirimi || 'TRY') === 'USD';
+    const body  = { tahsilEdildi: aktif };
+    if (isUSD && aktif && kurUSD) body.kurUSD = kurUSD;
     const res = await fetch(`/api/hizmetler/${id}/flags`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tahsilEdildi: aktif })
+      body: JSON.stringify(body)
     });
     if (res.ok) {
       const updated = await res.json();
@@ -606,15 +623,22 @@
     return `<span class="currency">₺</span>${formatted}`;
   }
 
-  function formatFiyat(fiyat, paraBirimi) {
+  function formatFiyat(fiyat, paraBirimi, h) {
     if (fiyat === null || fiyat === undefined) return '<span style="opacity:0.3">—</span>';
     if ((paraBirimi || 'TRY') === 'USD') {
       const usdFmt = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(fiyat);
       let tlSatir = '';
-      if (kurUSD) {
+      // Snapshot varsa onu göster (değişmez); yoksa anlık kur tahmini göster (gri, ~)
+      const snapTL  = h && (h.odemeTL || h.faturaTL);
+      const snapKur = h && (h.odemeKuru || h.faturaKuru);
+      if (snapTL) {
+        const tlFmt  = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(snapTL);
+        const kurFmt = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(snapKur);
+        tlSatir = `<span style="display:block;font-size:11px;color:var(--text-muted);margin-top:2px;" title="Kur: ₺${kurFmt}">₺${tlFmt} <span style="opacity:0.5;">@${kurFmt}</span></span>`;
+      } else if (kurUSD) {
         const tl = fiyat * kurUSD;
         const tlFmt = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(tl);
-        tlSatir = `<span style="display:block;font-size:11px;color:var(--text-muted);margin-top:2px;">₺${tlFmt}</span>`;
+        tlSatir = `<span style="display:block;font-size:11px;color:var(--text-muted);margin-top:2px;opacity:0.6;" title="Anlık kur tahmini">~₺${tlFmt}</span>`;
       }
       return `<span style="display:flex;flex-direction:column;align-items:flex-end;"><span><span class="currency" style="font-family:inherit;">$</span>${usdFmt}</span>${tlSatir}</span>`;
     }
@@ -675,8 +699,16 @@
       // Anlık görsel tepki
       faturaBtn.classList.toggle('checked', newVal);
       faturaBtn.disabled = true;
-      // Optimistik yerel güncelleme
+      // Optimistik yerel güncelleme (USD → TL snapshot)
       h.faturaKesildi = newVal;
+      const isUSD_f = (h.paraBirimi || 'TRY') === 'USD';
+      if (isUSD_f && newVal && kurUSD && !h.faturaTL) {
+        h.faturaTL   = Math.round((h.fiyat || 0) * kurUSD * 100) / 100;
+        h.faturaKuru = kurUSD;
+      } else if (!newVal) {
+        h.faturaTL   = null;
+        h.faturaKuru = null;
+      }
       const row = faturaBtn.closest('.hizmet-row');
       if (row) row.children[1].innerHTML = getStatusBadge(h);
       toggleFatura(id, newVal).finally(() => { faturaBtn.disabled = false; });
@@ -695,8 +727,16 @@
       // Anlık görsel tepki
       payBtn.classList.toggle('checked', newVal);
       payBtn.disabled = true;
-      // Optimistik yerel güncelleme
+      // Optimistik yerel güncelleme (USD → TL snapshot)
       h.tahsilEdildi = newVal;
+      const isUSD_p = (h.paraBirimi || 'TRY') === 'USD';
+      if (isUSD_p && newVal && kurUSD && !h.odemeTL) {
+        h.odemeTL   = Math.round((h.fiyat || 0) * kurUSD * 100) / 100;
+        h.odemeKuru = kurUSD;
+      } else if (!newVal) {
+        h.odemeTL   = null;
+        h.odemeKuru = null;
+      }
       const row = payBtn.closest('.hizmet-row');
       if (row) row.children[1].innerHTML = getStatusBadge(h);
       toggleOdeme(id, newVal).finally(() => { payBtn.disabled = false; });

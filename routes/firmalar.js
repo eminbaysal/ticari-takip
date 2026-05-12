@@ -33,6 +33,9 @@ router.get('/finansal', async (req, res) => {
         if (isTahsil) finMap[fId].odeme  += fiyat;
       } else {
         finMap[fId].usdVarMi = true;
+        // TL snapshot: USD hizmetler için TL karşılığını ekle
+        if (isFatura && h.faturaTL != null) finMap[fId].fatura += h.faturaTL;
+        if (isTahsil && h.odemeTL  != null) finMap[fId].odeme  += h.odemeTL;
       }
     });
 

@@ -19,6 +19,9 @@ router.get('/ozet', async (req, res) => {
         usdToplam += f;
         if (isTahsil) usdTahsil += f; else usdBekleyen += f;
         if (isFatura)  usdFatura += f;
+        // TL snapshot: USD hizmetler için TL karşılığını TRY toplamlarına ekle
+        if (isFatura && h.faturaTL != null) tryFatura += h.faturaTL;
+        if (isTahsil && h.odemeTL  != null) tryTahsil += h.odemeTL;
       } else {
         tryToplam += f;
         if (isTahsil) tryTahsil += f; else tryBekleyen += f;
@@ -129,9 +132,44 @@ router.patch('/:id/flags', async (req, res) => {
     else if (newFatura)  durum = 'fatura-kesildi';
     else                 durum = baseDurum;
 
+    // USD → TL snapshot: işlem anındaki kuru kayıt altına al
+    const isUSD   = (hizmet.paraBirimi || 'TRY') === 'USD';
+    const kurUSD  = isUSD && req.body.kurUSD ? parseFloat(req.body.kurUSD) : null;
+    const fiyat   = hizmet.fiyat || 0;
+
+    const updateFields = { faturaKesildi: newFatura, tahsilEdildi: newTahsil, durum };
+
+    if (isUSD && req.body.faturaKesildi !== undefined) {
+      if (newFatura && kurUSD) {
+        // Fatura ilk kez kesiliyor → snapshot kaydet (mevcut snapshot varsa değiştirme)
+        if (!hizmet.faturaTL) {
+          updateFields.faturaTL   = Math.round(fiyat * kurUSD * 100) / 100;
+          updateFields.faturaKuru = kurUSD;
+        }
+      } else if (!newFatura) {
+        // Fatura geri alındı → snapshot temizle
+        updateFields.faturaTL   = null;
+        updateFields.faturaKuru = null;
+      }
+    }
+
+    if (isUSD && req.body.tahsilEdildi !== undefined) {
+      if (newTahsil && kurUSD) {
+        // Ödeme ilk kez alındı → snapshot kaydet (mevcut snapshot varsa değiştirme)
+        if (!hizmet.odemeTL) {
+          updateFields.odemeTL   = Math.round(fiyat * kurUSD * 100) / 100;
+          updateFields.odemeKuru = kurUSD;
+        }
+      } else if (!newTahsil) {
+        // Ödeme geri alındı → snapshot temizle
+        updateFields.odemeTL   = null;
+        updateFields.odemeKuru = null;
+      }
+    }
+
     const updated = await Hizmet.findByIdAndUpdate(
       req.params.id,
-      { faturaKesildi: newFatura, tahsilEdildi: newTahsil, durum },
+      updateFields,
       { new: true }
     );
     res.json(updated);
