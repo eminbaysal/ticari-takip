@@ -11,9 +11,14 @@
 <nav class="navbar">
   <div class="nav-brand">
     <span class="mono accent">ETS</span>
+    <button class="nav-home-btn" onclick="window.location.href='/'">Anasayfa</button>
+    <span class="nav-brand-sep">›</span>
     <span>Ödeme Takip Sistemi</span>
   </div>
   <div class="nav-right">
+    <button class="nav-icon-btn" style="color:var(--accent);cursor:default;" data-tip="Ana Sayfa" title="Ana Sayfa">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    </button>
     <button class="nav-icon-btn admin" id="adminBtn" onclick="window.location.href='/admin'" style="display:none;">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
     </button>
@@ -35,24 +40,29 @@
       <div class="summary-value" id="sumGenel">—</div>
     </div>
     <div class="summary-card accent-card">
-      <div class="summary-label">TL Tahsil Edilen</div>
-      <div class="summary-value" id="sumTahsil">—</div>
+      <div class="summary-label">Kesilen Fatura Tutarı</div>
+      <div class="summary-value" id="sumFatura">—</div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px;">
+        <span style="font-size:11px;color:var(--text-muted);white-space:nowrap;">Tahsil Edilen</span>
+        <span style="font-size:13px;font-weight:600;color:var(--success);" id="sumTahsil">—</span>
+      </div>
     </div>
     <div class="summary-card warn-card">
       <div class="summary-label">TL Bekleyen</div>
       <div class="summary-value" id="sumBekleyen">—</div>
     </div>
-    <div class="summary-card usd-card">
+    <div class="summary-card">
       <div class="summary-label">USD Toplam</div>
       <div class="summary-value" id="sumUsdGenel">—</div>
     </div>
-    <div class="summary-card usd-tahsil-card">
+    <div class="summary-card">
       <div class="summary-label">USD Tahsil Edilen</div>
       <div class="summary-value" id="sumUsdTahsil">—</div>
     </div>
     <div class="summary-card kombine-card">
       <div class="summary-label">Kombine Toplam (TL)</div>
       <div class="summary-value" id="sumKombine">—</div>
+      <div style="margin-top:6px;min-height:16px;font-size:11px;color:var(--text-muted);" id="sumKombineUsd"></div>
     </div>
   </div>
 
@@ -206,6 +216,7 @@
     if (!res.ok) return;
     const d = await res.json();
     document.getElementById('sumGenel').innerHTML    = formatPara(d.tryToplam);
+    document.getElementById('sumFatura').innerHTML   = formatPara(d.tryFatura);
     document.getElementById('sumTahsil').innerHTML   = formatPara(d.tryTahsil);
     document.getElementById('sumBekleyen').innerHTML = formatPara(d.tryBekleyen);
 
@@ -214,14 +225,18 @@
       let tl = kurUSD ? ` <span style="opacity:0.55;font-size:12px;">(₺${new Intl.NumberFormat('tr-TR',{minimumFractionDigits:0,maximumFractionDigits:0}).format(v*kurUSD)})</span>` : '';
       return `<span class="currency" style="font-family:inherit;">$</span>${s}${tl}`;
     };
-    document.getElementById('sumUsdGenel').innerHTML  = d.usdToplam  ? usdFmt(d.usdToplam)  : '—';
-    document.getElementById('sumUsdTahsil').innerHTML = d.usdTahsil  ? usdFmt(d.usdTahsil)  : '—';
+    document.getElementById('sumUsdGenel').innerHTML  = d.usdToplam ? usdFmt(d.usdToplam) : '—';
+    document.getElementById('sumUsdTahsil').innerHTML = d.usdTahsil ? usdFmt(d.usdTahsil) : '—';
 
     if (kurUSD && d.usdToplam) {
       const kombine = d.tryToplam + d.usdToplam * kurUSD;
-      document.getElementById('sumKombine').innerHTML = formatPara(kombine);
+      const kombineUSD = d.usdToplam + d.tryToplam / kurUSD;
+      const kombineUSDFmt = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(kombineUSD);
+      document.getElementById('sumKombine').innerHTML    = formatPara(kombine);
+      document.getElementById('sumKombineUsd').innerHTML = `<span class="currency" style="font-family:inherit;">$</span>${kombineUSDFmt} USD karşılığı`;
     } else {
-      document.getElementById('sumKombine').innerHTML = formatPara(d.tryToplam);
+      document.getElementById('sumKombine').innerHTML    = formatPara(d.tryToplam);
+      document.getElementById('sumKombineUsd').innerHTML = '';
     }
   }
 

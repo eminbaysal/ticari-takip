@@ -11,9 +11,14 @@
 <nav class="navbar">
   <div class="nav-brand">
     <span class="mono accent">ETS</span>
+    <button class="nav-home-btn" onclick="window.location.href='/'">Anasayfa</button>
+    <span class="nav-brand-sep">›</span>
     <span>Ödeme Takip Sistemi</span>
   </div>
   <div class="nav-right">
+    <button class="nav-icon-btn" onclick="window.location.href='/'" data-tip="Ana Sayfa" title="Ana Sayfa">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    </button>
     <button class="nav-icon-btn admin" id="adminBtn" onclick="window.location.href='/admin'" data-tip="Yönetici Paneli" style="display:none;">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
     </button>
