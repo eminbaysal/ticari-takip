@@ -11,18 +11,19 @@ router.get('/ozet', async (req, res) => {
     let usdToplam = 0, usdTahsil = 0, usdBekleyen = 0, usdFatura = 0;
     hizmetler.forEach(h => {
       const f  = h.fiyat || 0;
-      const pb = h.paraBirimi || 'TRY';
+      const pb    = h.paraBirimi || 'TRY';
+      const isTRY = pb === 'TRY';
       // Yeni boolean flag'ler birincil kaynak; yoksa eski durum alanına bak (geriye dönük uyum)
       const isFatura = h.faturaKesildi === true || h.durum === 'fatura-kesildi';
       const isTahsil = h.tahsilEdildi  === true || h.durum === 'tahsil-edildi';
-      if (pb === 'USD') {
+      if (!isTRY) {
         usdToplam += f;
         if (isTahsil) usdTahsil += f; else usdBekleyen += f;
         if (isFatura)  usdFatura += f;
         // TL snapshot: USD hizmetler için TL karşılığını TRY toplamlarına ekle
         if (isFatura && h.faturaTL != null) tryFatura += h.faturaTL;
         if (isTahsil && h.odemeTL  != null) tryTahsil += h.odemeTL;
-      } else {
+      } else { // TRY
         tryToplam += f;
         if (isTahsil) tryTahsil += f;
         if (isFatura) { tryFatura += f; tryFaturaTRY += f; }

@@ -1077,6 +1077,104 @@ body {
   opacity: 0.75;
 }
 
+/* ── Abonelik Listesi ── */
+.abonelik-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.abonelik-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  border-left: 3px solid var(--accent);
+  transition: border-color 0.2s;
+}
+.abonelik-row.abonelik-pasif {
+  border-left-color: var(--border);
+  opacity: 0.6;
+}
+.abonelik-row-info {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.abonelik-paket {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.abonelik-not {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.abonelik-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+.abonelik-ucret {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.abonelik-tarih {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.badge-abonelik-sonraki {
+  font-size: 10px;
+  color: var(--success);
+  background: var(--success-dim);
+  border: 1px solid color-mix(in srgb, var(--success) 25%, transparent);
+  border-radius: 5px;
+  padding: 2px 7px;
+}
+.abonelik-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Abonelik hizmet satırı vurgusu */
+.hizmet-row-abonelik {
+  border-left: 2px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 4%, var(--surface));
+}
+.tip-badge-abonelik {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-dim2);
+  color: var(--accent);
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-weight: 600;
+}
+.badge-abonelik-tekrar {
+  font-size: 13px;
+  color: var(--accent);
+  opacity: 0.6;
+  padding: 0 4px;
+  cursor: default;
+}
+
 /* ── Buttons ── */
 .btn-primary {
   background: var(--accent);

@@ -24,7 +24,7 @@ router.get('/finansal', async (req, res) => {
       const fId = h.firma.toString();
       if (!finMap[fId]) finMap[fId] = { toplam: 0, fatura: 0, odeme: 0, kesilmemis: 0, usdKesilmemis: 0, usdVarMi: false };
       const fiyat    = h.fiyat || 0;
-      const isTRY    = (h.paraBirimi || 'TRY') !== 'USD';
+      const isTRY    = (h.paraBirimi || 'TRY') === 'TRY';
       const isFatura = h.faturaKesildi === true || h.durum === 'fatura-kesildi';
       const isTahsil = h.tahsilEdildi  === true || h.durum === 'tahsil-edildi';
       if (isTRY) {

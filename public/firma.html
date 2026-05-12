@@ -49,7 +49,18 @@
     </div>
   </div>
 
+  <!-- Abonelikler Bölümü -->
   <div class="section-header">
+    <h2 style="display:flex;align-items:center;gap:8px;">
+      <svg style="width:16px;height:16px;opacity:0.7;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+      İnternet Abonelikleri
+    </h2>
+    <button class="btn-primary" onclick="openAbonelikModal()">+ Abonelik Ekle</button>
+  </div>
+  <div id="abonelikListesi"></div>
+
+  <!-- Hizmet Kayıtları -->
+  <div class="section-header" style="margin-top:24px;">
     <h2>Hizmet Kayıtları</h2>
     <div style="display:flex;align-items:center;gap:16px;">
       <span id="kurBilgi" style="font-size:13px;color:var(--text-muted);"></span>
@@ -155,6 +166,63 @@
 
 <div id="aciklamaTooltip"></div>
 
+<!-- Abonelik Modal -->
+<div class="modal-overlay" id="abonelikModal">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <h3 id="abonelikModalBaslik">İnternet Aboneliği Ekle</h3>
+      <button class="modal-close" onclick="closeAbonelikModal()">✕</button>
+    </div>
+    <div class="modal-grid">
+      <div>
+        <label>Paket / Hizmet Adı *</label>
+        <input type="text" id="abPaketAdi" class="modal-input" placeholder="Örn: Turkcell Superonline 100 Mbps" />
+      </div>
+      <div>
+        <label>Başlangıç Tarihi *</label>
+        <input type="date" id="abBaslangic" class="modal-input" />
+      </div>
+      <div>
+        <label>Aylık Ücret *</label>
+        <div style="display:flex;gap:8px;">
+          <select id="abParaBirimi" class="modal-input modal-select" style="width:90px;flex-shrink:0;">
+            <option value="TRY">₺ TL</option>
+            <option value="USD">$ USD</option>
+            <option value="EUR">€ EUR</option>
+          </select>
+          <input type="number" id="abAylikUcret" class="modal-input" placeholder="0.00" step="0.01" min="0" style="flex:1;" />
+        </div>
+      </div>
+      <div>
+        <label>Devreye Alma Ücreti (tek seferlik)</label>
+        <input type="number" id="abDevreAlma" class="modal-input" placeholder="0.00 (opsiyonel)" step="0.01" min="0" />
+      </div>
+    </div>
+    <label>Açıklama / Not (opsiyonel)</label>
+    <textarea id="abAciklama" class="modal-input modal-textarea" style="min-height:60px;" placeholder="Operatör notu, sözleşme detayı..."></textarea>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeAbonelikModal()">İptal</button>
+      <button class="btn-primary" onclick="saveAbonelik()">Kaydet</button>
+    </div>
+    <div class="modal-error" id="abonelikError"></div>
+  </div>
+</div>
+
+<!-- Abonelik Silme Onay -->
+<div class="modal-overlay" id="abonelikDeleteModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Aboneliği Sil</h3>
+      <button class="modal-close" onclick="closeAbonelikDeleteModal()">✕</button>
+    </div>
+    <p style="color:var(--text-muted);font-size:14px;margin-bottom:24px;">Bu aboneliğe ait tüm otomatik oluşturulan hizmet kayıtları da silinecek. Emin misiniz?</p>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeAbonelikDeleteModal()">İptal</button>
+      <button class="btn-danger" onclick="confirmAbonelikDelete()">Sil</button>
+    </div>
+  </div>
+</div>
+
 <!-- Hizmet Silme Onay -->
 <div class="modal-overlay" id="hizmetDeleteModal">
   <div class="modal">
@@ -238,6 +306,151 @@
     updateToplam();
   }
 
+  // ── Abonelik fonksiyonları ──────────────────────────────────────────────
+
+  async function loadAbonelikler() {
+    try {
+      const res = await fetch(`/api/abonelikler/firma/${firmaId}`);
+      if (!res.ok) return;
+      abonelikler = await res.json();
+      renderAbonelikler();
+    } catch {}
+  }
+
+  function renderAbonelikler() {
+    const el = document.getElementById('abonelikListesi');
+    if (!abonelikler.length) {
+      el.innerHTML = '<div class="empty-state" style="padding:14px 0 4px;font-size:13px;">Henüz abonelik yok.</div>';
+      return;
+    }
+    const pbSym = pb => pb === 'USD' ? '$' : pb === 'EUR' ? '€' : '₺';
+    const fmt   = v  => new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
+
+    el.innerHTML = `<div class="abonelik-liste">
+      ${abonelikler.map(ab => {
+        const sym  = pbSym(ab.paraBirimi);
+        const sonraki = ab.sonrakiFaturaTarihi ? formatTarih(ab.sonrakiFaturaTarihi) : '—';
+        return `<div class="abonelik-row ${ab.aktif ? '' : 'abonelik-pasif'}">
+          <div class="abonelik-row-info">
+            <svg style="width:14px;height:14px;flex-shrink:0;opacity:0.7;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+            <div>
+              <div class="abonelik-paket">${escHtml(ab.paketAdi)}</div>
+              ${ab.aciklama ? `<div class="abonelik-not">${escHtml(ab.aciklama)}</div>` : ''}
+            </div>
+          </div>
+          <div class="abonelik-row-meta">
+            <span class="abonelik-ucret">${sym}${fmt(ab.aylikUcret)}<span style="font-size:10px;opacity:0.6;">/ay</span></span>
+            <span class="abonelik-tarih">${formatTarih(ab.baslangicTarihi)}'den</span>
+            ${ab.aktif
+              ? `<span class="badge-abonelik-sonraki" title="Sonraki fatura">→ ${sonraki}</span>`
+              : `<span class="badge badge-warn" style="font-size:9px;padding:2px 6px;">Pasif</span>`}
+          </div>
+          <div class="abonelik-row-actions">
+            <button class="btn-icon ab-toggle-btn" data-abid="${ab._id}" data-aktif="${ab.aktif}" title="${ab.aktif ? 'Pasife Al' : 'Aktifleştir'}">${ab.aktif ? '⏸' : '▶'}</button>
+            <button class="btn-icon ab-edit-btn" data-abid="${ab._id}" title="Düzenle">✎</button>
+            <button class="btn-icon danger ab-delete-btn" data-abid="${ab._id}" title="Sil">✕</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+
+    el.querySelectorAll('.ab-toggle-btn').forEach(btn => {
+      btn.addEventListener('click', () => toggleAbonelikAktif(btn.dataset.abid, btn.dataset.aktif === 'true'));
+    });
+    el.querySelectorAll('.ab-edit-btn').forEach(btn => {
+      btn.addEventListener('click', () => openEditAbonelik(btn.dataset.abid));
+    });
+    el.querySelectorAll('.ab-delete-btn').forEach(btn => {
+      btn.addEventListener('click', () => openAbonelikDeleteModal(btn.dataset.abid));
+    });
+  }
+
+  function openAbonelikModal() {
+    editAbonelikId = null;
+    document.getElementById('abonelikModalBaslik').textContent = 'İnternet Aboneliği Ekle';
+    document.getElementById('abPaketAdi').value   = '';
+    document.getElementById('abBaslangic').value  = new Date().toISOString().slice(0, 10);
+    document.getElementById('abParaBirimi').value = 'TRY';
+    document.getElementById('abAylikUcret').value = '';
+    document.getElementById('abDevreAlma').value  = '';
+    document.getElementById('abAciklama').value   = '';
+    document.getElementById('abonelikError').textContent = '';
+    document.getElementById('abonelikModal').classList.add('open');
+  }
+
+  function openEditAbonelik(id) {
+    const ab = abonelikler.find(x => x._id === id);
+    if (!ab) return;
+    editAbonelikId = id;
+    document.getElementById('abonelikModalBaslik').textContent = 'Abonelik Düzenle';
+    document.getElementById('abPaketAdi').value   = ab.paketAdi;
+    document.getElementById('abBaslangic').value  = ab.baslangicTarihi.slice(0, 10);
+    document.getElementById('abParaBirimi').value = ab.paraBirimi || 'TRY';
+    document.getElementById('abAylikUcret').value = ab.aylikUcret;
+    document.getElementById('abDevreAlma').value  = ab.devreAlmaUcreti || '';
+    document.getElementById('abAciklama').value   = ab.aciklama || '';
+    document.getElementById('abonelikError').textContent = '';
+    document.getElementById('abonelikModal').classList.add('open');
+  }
+
+  function closeAbonelikModal() {
+    document.getElementById('abonelikModal').classList.remove('open');
+  }
+
+  async function saveAbonelik() {
+    const paketAdi       = document.getElementById('abPaketAdi').value.trim();
+    const baslangic      = document.getElementById('abBaslangic').value;
+    const paraBirimi     = document.getElementById('abParaBirimi').value;
+    const aylikUcret     = document.getElementById('abAylikUcret').value;
+    const devreAlma      = document.getElementById('abDevreAlma').value;
+    const aciklama       = document.getElementById('abAciklama').value.trim();
+    const errEl          = document.getElementById('abonelikError');
+
+    if (!paketAdi)    { errEl.textContent = 'Paket adı gerekli.'; return; }
+    if (!baslangic)   { errEl.textContent = 'Başlangıç tarihi gerekli.'; return; }
+    if (!aylikUcret || parseFloat(aylikUcret) <= 0) { errEl.textContent = 'Geçerli aylık ücret girin.'; return; }
+    errEl.textContent = '';
+
+    const body = { paketAdi, baslangicTarihi: baslangic, paraBirimi, aylikUcret, aciklama,
+                   devreAlmaUcreti: devreAlma || null };
+    if (!editAbonelikId) body.firma = firmaId;
+
+    const url    = editAbonelikId ? `/api/abonelikler/${editAbonelikId}` : '/api/abonelikler';
+    const method = editAbonelikId ? 'PUT' : 'POST';
+    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent = data.error || 'Hata oluştu.'; return; }
+    closeAbonelikModal();
+    await loadAbonelikler();
+    await loadDetay(); // tick'ten oluşan yeni hizmet kayıtlarını yükle
+  }
+
+  async function toggleAbonelikAktif(id, simdikiAktif) {
+    const res = await fetch(`/api/abonelikler/${id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ aktif: !simdikiAktif })
+    });
+    if (res.ok) { await loadAbonelikler(); await loadDetay(); }
+  }
+
+  function openAbonelikDeleteModal(id) {
+    deleteAbonelikId = id;
+    document.getElementById('abonelikDeleteModal').classList.add('open');
+  }
+
+  function closeAbonelikDeleteModal() {
+    document.getElementById('abonelikDeleteModal').classList.remove('open');
+    deleteAbonelikId = null;
+  }
+
+  async function confirmAbonelikDelete() {
+    if (!deleteAbonelikId) return;
+    const res = await fetch(`/api/abonelikler/${deleteAbonelikId}`, { method: 'DELETE' });
+    if (res.ok) { closeAbonelikDeleteModal(); await loadAbonelikler(); await loadDetay(); }
+  }
+
+  // ────────────────────────────────────────────────────────────────────────
+
   function applyTheme(next) {
     document.documentElement.dataset.theme = next;
     try { localStorage.setItem('theme', next); } catch {}
@@ -261,13 +474,17 @@
 
   const sabitTipler = ['danismanlik', 'urun-tedariki', 'cihaz-kurulumu', 'devreye-alma', 'diger'];
   const tipLabels = {
-    'danismanlik': 'Danışmanlık',
-    'teknik-destek': 'Teknik Destek',
-    'urun-tedariki': 'Ürün Tedariği',
-    'cihaz-kurulumu': 'Cihaz Kurulumu',
-    'devreye-alma': 'Devreye Alma',
-    'diger': 'Diğer'
+    'danismanlik':        'Danışmanlık',
+    'teknik-destek':      'Teknik Destek',
+    'urun-tedariki':      'Ürün Tedariği',
+    'cihaz-kurulumu':     'Cihaz Kurulumu',
+    'devreye-alma':       'Devreye Alma',
+    'internet-aboneligi': 'İnternet',
+    'diger':              'Diğer'
   };
+  let abonelikler = [];
+  let editAbonelikId = null;
+  let deleteAbonelikId = null;
 
   function onDurumChange() {
     const durum = document.getElementById('hizmetDurum').value;
@@ -419,11 +636,18 @@
         <span></span>
       </div>
       ${hizmetler.map(h => {
-        const isFatura = h.faturaKesildi === true || h.durum === 'fatura-kesildi';
-        const isTahsil = h.tahsilEdildi  === true || h.durum === 'tahsil-edildi';
+        const isFatura  = h.faturaKesildi === true || h.durum === 'fatura-kesildi';
+        const isTahsil  = h.tahsilEdildi  === true || h.durum === 'tahsil-edildi';
+        const isAbonelik = !!h.abonelikId;
+        const tipHtml = isAbonelik
+          ? `<span class="tip-badge tip-badge-abonelik">
+               <svg style="width:10px;height:10px;flex-shrink:0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+               ${h.devreAlma ? 'Devreye Alma' : 'İnternet'}
+             </span>`
+          : `<span class="tip-badge">${escHtml(tipLabels[h.tip] || h.tip)}</span>`;
         return `
-      <div class="hizmet-row">
-        <span class="tip-badge">${escHtml(tipLabels[h.tip] || h.tip)}</span>
+      <div class="hizmet-row${isAbonelik ? ' hizmet-row-abonelik' : ''}">
+        ${tipHtml}
         ${getStatusBadge(h)}
         <div class="hizmet-aciklama">
           ${h.tip === 'urun-tedariki' && h.urunAdi
@@ -446,7 +670,9 @@
           </button>
         </div>
         <div class="hizmet-actions">
-          <button class="btn-icon edit-hizmet-btn" data-hid="${h._id}">✎</button>
+          ${isAbonelik
+            ? `<span class="badge-abonelik-tekrar" title="Otomatik oluşturuldu">↻</span>`
+            : `<button class="btn-icon edit-hizmet-btn" data-hid="${h._id}">✎</button>`}
           <button class="btn-icon danger delete-hizmet-btn" data-hid="${h._id}">✕</button>
         </div>
       </div>`; }).join('')}
@@ -722,7 +948,13 @@
   }
 
   document.querySelectorAll('.modal-overlay').forEach(o => {
-    o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+    o.addEventListener('click', e => {
+      if (e.target === o) {
+        o.classList.remove('open');
+        if (o.id === 'abonelikModal') closeAbonelikModal();
+        if (o.id === 'abonelikDeleteModal') closeAbonelikDeleteModal();
+      }
+    });
   });
 
   document.getElementById('hizmetListesi').addEventListener('click', e => {
@@ -789,7 +1021,12 @@
   });
 
   initTheme();
-  checkAuth().then(() => { fetchKur().then(() => loadDetay()); });
+  checkAuth().then(() => {
+    fetchKur().then(async () => {
+      await loadAbonelikler(); // tick → eksik aylık kayıtlar oluşur
+      await loadDetay();       // güncel hizmet listesini çek
+    });
+  });
 </script>
 </body>
 </html>

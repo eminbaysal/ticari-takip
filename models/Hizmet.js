@@ -13,7 +13,7 @@ const hizmetSchema = new mongoose.Schema({
   faturaTarihi: { type: Date, default: null },
   oncekiDurum: { type: String, default: '' },
   fiyat: { type: Number, default: null },
-  paraBirimi: { type: String, enum: ['TRY', 'USD'], default: 'TRY' },
+  paraBirimi: { type: String, enum: ['TRY', 'USD', 'EUR'], default: 'TRY' },
   faturaKesildi: { type: Boolean, default: false },
   tahsilEdildi:  { type: Boolean, default: false },
   // Döviz → TL dönüşüm snapshot (işlem anındaki kur)
@@ -21,6 +21,10 @@ const hizmetSchema = new mongoose.Schema({
   faturaKuru: { type: Number, default: null },   // fatura anındaki USD/TRY kuru
   odemeTL:    { type: Number, default: null },   // ödeme anındaki TL karşılığı
   odemeKuru:  { type: Number, default: null },   // ödeme anındaki USD/TRY kuru
+  // Abonelik bağlantısı (internet-aboneligi otomatik kayıtları için)
+  abonelikId:  { type: mongoose.Schema.Types.ObjectId, ref: 'Abonelik', default: null },
+  abonelikAy:  { type: Date, default: null },   // ayın ilk günü — duplicate kontrol
+  devreAlma:   { type: Boolean, default: false }, // tek seferlik devreye alma kalemi
   durum: {
     type: String,
     required: true,
