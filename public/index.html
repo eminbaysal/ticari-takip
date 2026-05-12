@@ -185,21 +185,32 @@
   }
 
   const tipLabels = {
-    'danismanlik': 'Danışmanlık',
-    'urun-tedariki': 'Ürün Tedariği',
-    'cihaz-kurulumu': 'Cihaz Kurulumu',
-    'devreye-alma': 'Devreye Alma',
-    'diger': 'Diğer'
+    'danismanlik':        'Danışmanlık',
+    'teknik-destek':      'Teknik Destek',
+    'urun-tedariki':      'Ürün Tedariği',
+    'cihaz-kurulumu':     'Cihaz Kurulumu',
+    'devreye-alma':       'Devreye Alma',
+    'internet-aboneligi': 'İnternet',
+    'diger':              'Diğer'
   };
   // Önizleme: hizmetin efektif durumunu döner (yeni flag sistemi + geriye dönük uyum)
   function getOnizlemeDurum(h) {
     const isFatura = h.faturaKesildi === true || h.durum === 'fatura-kesildi';
     const isTahsil = h.tahsilEdildi  === true || h.durum === 'tahsil-edildi';
-    if (isTahsil && isFatura) return { label: 'Fatura+Ödeme', cls: 'badge-glowing' };
-    if (isTahsil)  return { label: 'Ödeme ✓',    cls: 'badge-glowing' };
-    if (isFatura)  return { label: 'Fatura ✓',   cls: 'badge-fatura'  };
+    if (isTahsil && isFatura) return { label: 'F+Ö ✓',    cls: 'badge-glowing' };
+    if (isTahsil)             return { label: 'Ödeme ✓',  cls: 'badge-glowing' };
+    if (isFatura)             return { label: 'Fatura ✓', cls: 'badge-fatura'  };
     if (h.durum === 'tamamlandi') return { label: 'Tamamlandı', cls: 'badge-info' };
     return { label: 'Bekliyor', cls: 'badge-warn' };
+  }
+
+  // Önizleme için kompakt fiyat — TL dönüşüm satırı olmadan
+  function formatFiyatOnizleme(fiyat, paraBirimi) {
+    if (fiyat == null) return '<span style="opacity:0.28">—</span>';
+    const fmt = v => new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
+    if (paraBirimi === 'USD') return `<span style="font-family:inherit;font-size:10px;opacity:0.7;">$</span>${fmt(fiyat)}`;
+    if (paraBirimi === 'EUR') return `<span style="font-size:10px;opacity:0.7;">€</span>${fmt(fiyat)}`;
+    return `<span class="currency" style="font-size:10px;">₺</span>${fmt(fiyat)}`;
   }
 
   function applyTheme(next) {
@@ -263,6 +274,8 @@
     const res = await fetch('/api/firmalar/finansal');
     if (!res.ok) { if (res.status === 401) window.location.href = '/login'; return; }
     tumFirmalar = await res.json();
+    // Türkçe alfabetik sıra (Ç, Ğ, İ, Ö, Ş, Ü doğru yerinde)
+    tumFirmalar.sort((a, b) => a.ad.localeCompare(b.ad, 'tr', { sensitivity: 'base' }));
     firmaMap = {};
     tumFirmalar.forEach(f => firmaMap[f._id] = f);
     renderFirmalar(tumFirmalar);
@@ -406,18 +419,19 @@
     if (!d.hizmetler.length) {
       hEl.innerHTML = '<div class="empty-state" style="padding:24px 0;">Henüz hizmet kaydı yok.</div>';
     } else {
-      const ONIZLEME_COLS = '1fr auto 78px';
+      // Sabit genişlikler: tip 108px | durum 62px | fiyat kalan (sağa hizalı)
+      const OC = '108px 62px 1fr';
       hEl.innerHTML = `<div class="hizmet-liste" style="margin-top:0;">
-        <div class="hizmet-liste-baslik" style="grid-template-columns:${ONIZLEME_COLS};padding:4px 10px;font-size:10px;gap:6px;">
-          <span>Hizmet</span><span>Durum</span><span style="text-align:right;">Fiyat</span>
+        <div class="hizmet-liste-baslik" style="grid-template-columns:${OC};padding:4px 10px 4px 12px;font-size:10px;gap:8px;color:var(--text-muted);">
+          <span>Hizmet</span><span style="text-align:center;">Durum</span><span style="text-align:right;">Fiyat</span>
         </div>
         ${d.hizmetler.map(h => {
           const st = getOnizlemeDurum(h);
           return `
-        <div class="hizmet-row" style="grid-template-columns:${ONIZLEME_COLS};padding:5px 10px;min-height:0;gap:6px;align-items:center;">
-          <span class="tip-badge" style="font-size:10px;padding:2px 7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;">${escHtml(tipLabels[h.tip] || h.tip)}</span>
-          <span class="badge ${st.cls}" style="font-size:9px;padding:2px 6px;white-space:nowrap;">${st.label}</span>
-          <span class="hizmet-fiyat" style="font-size:12px;text-align:right;">${formatFiyat(h.fiyat, h.paraBirimi)}</span>
+        <div class="hizmet-row" style="grid-template-columns:${OC};padding:5px 10px 5px 12px;min-height:32px;gap:8px;align-items:center;border-left:none;">
+          <span class="tip-badge" style="font-size:10px;padding:2px 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;text-align:center;">${escHtml(tipLabels[h.tip] || h.tip)}</span>
+          <span class="badge ${st.cls}" style="font-size:9px;padding:2px 5px;white-space:nowrap;text-align:center;justify-content:center;display:flex;">${st.label}</span>
+          <span class="hizmet-fiyat" style="font-size:12px;text-align:right;white-space:nowrap;">${formatFiyatOnizleme(h.fiyat, h.paraBirimi)}</span>
         </div>`;
         }).join('')}
       </div>`;
