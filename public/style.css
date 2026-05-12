@@ -214,10 +214,48 @@ body {
 /* ── Summary Grid ── */
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
   margin-bottom: 40px;
 }
+
+/* Birleşik toplam kartı — tam genişlik */
+.combined-card {
+  grid-column: 1 / -1;
+  padding: 0 !important;
+  min-height: 110px !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  text-align: left !important;
+}
+.combined-card::after {
+  background: linear-gradient(to right, var(--accent), #22c55e 50%, #a78bfa) !important;
+  opacity: 0.75;
+}
+.combined-inner {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  flex: 1;
+}
+.combined-col {
+  flex: 1;
+  padding: 22px 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+.combined-divider {
+  width: 1px;
+  background: var(--border);
+  flex-shrink: 0;
+  margin: 14px 0;
+}
+.combined-col-usd .summary-label  { color: color-mix(in srgb, #22c55e 70%, var(--text-soft)); }
+.combined-col-usd .summary-value  { color: #22c55e; }
+.combined-col-genel .summary-label { color: color-mix(in srgb, #a78bfa 70%, var(--text-soft)); }
+.combined-col-genel .summary-value { color: #a78bfa; }
 
 .summary-card {
   background: var(--surface);
@@ -1164,6 +1202,9 @@ html[data-theme="light"] .modal {
 
 @media (max-width: 640px) {
   .summary-grid { grid-template-columns: 1fr; }
+  .combined-inner { flex-direction: column; }
+  .combined-divider { width: auto; height: 1px; margin: 0 14px; }
+  .combined-col { padding: 18px 20px; }
   .modal-grid   { grid-template-columns: 1fr; }
   .firma-detay-header { flex-direction: column; padding: 20px; }
   .container { padding: 20px 16px; }
