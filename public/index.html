@@ -70,9 +70,9 @@
       </div>
     </div>
 
-    <!-- TL Bekleyen -->
+    <!-- Fatura Kesilmemiş -->
     <div class="summary-card warn-card">
-      <div class="summary-label">TL Bekleyen</div>
+      <div class="summary-label">Fatura Kesilmemiş</div>
       <div class="summary-value" id="sumBekleyen">—</div>
     </div>
 
@@ -283,9 +283,10 @@
         <span>İşlemler</span>
       </div>
       ${firmalar.map(f => {
-        const fin   = f.fin || { toplam: 0, fatura: 0, odeme: 0, usdVarMi: false };
-        const kalan = Math.max(0, fin.fatura - fin.odeme);
-        const kalanHtml = kalan === 0 && fin.fatura > 0
+        const fin   = f.fin || { toplam: 0, fatura: 0, odeme: 0, kesilmemis: 0, usdVarMi: false };
+        // Kalan Bakiye = henüz fatura kesilmemiş hizmetlerin toplamı
+        const kalan = fin.kesilmemis || 0;
+        const kalanHtml = kalan === 0 && fin.toplam > 0
           ? `<span class="badge badge-glowing" style="font-size:10px;padding:2px 8px;width:auto;">Tamamlandı ✓</span>`
           : kalan > 0
             ? `<span class="firma-kalan-warn">${formatPara(kalan)}</span>`

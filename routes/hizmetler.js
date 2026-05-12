@@ -7,10 +7,10 @@ const Firma = require('../models/Firma');
 router.get('/ozet', async (req, res) => {
   try {
     const hizmetler = await Hizmet.find({ fiyat: { $ne: null } });
-    let tryToplam = 0, tryTahsil = 0, tryBekleyen = 0, tryFatura = 0;
+    let tryToplam = 0, tryTahsil = 0, tryFatura = 0, tryFaturaTRY = 0;
     let usdToplam = 0, usdTahsil = 0, usdBekleyen = 0, usdFatura = 0;
     hizmetler.forEach(h => {
-      const f = h.fiyat || 0;
+      const f  = h.fiyat || 0;
       const pb = h.paraBirimi || 'TRY';
       // Yeni boolean flag'ler birincil kaynak; yoksa eski durum alanına bak (geriye dönük uyum)
       const isFatura = h.faturaKesildi === true || h.durum === 'fatura-kesildi';
@@ -24,10 +24,12 @@ router.get('/ozet', async (req, res) => {
         if (isTahsil && h.odemeTL  != null) tryTahsil += h.odemeTL;
       } else {
         tryToplam += f;
-        if (isTahsil) tryTahsil += f; else tryBekleyen += f;
-        if (isFatura)  tryFatura += f;
+        if (isTahsil) tryTahsil += f;
+        if (isFatura) { tryFatura += f; tryFaturaTRY += f; }
       }
     });
+    // tryBekleyen = henüz fatura kesilmemiş TRY hizmetler (Toplam - Kesilen Fatura)
+    const tryBekleyen = Math.max(0, tryToplam - tryFaturaTRY);
     res.json({ tryToplam, tryTahsil, tryBekleyen, tryFatura, usdToplam, usdTahsil, usdBekleyen, usdFatura });
   } catch (err) {
     res.status(500).json({ error: err.message });
