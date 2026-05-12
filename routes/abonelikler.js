@@ -28,7 +28,7 @@ async function tickAbonelik(ab) {
     if (!var_) {
       await Hizmet.create({
         firma: ab.firma, tip: 'internet-aboneligi',
-        aciklama: `Devreye Alma — ${ab.paketAdi}`,
+        aciklama: `Kurulum / Aktivasyon — ${ab.paketAdi}`,
         tarih: start, fiyat: ab.devreAlmaUcreti,
         paraBirimi: ab.paraBirimi, durum: 'bekliyor',
         abonelikId: ab._id, devreAlma: true,
