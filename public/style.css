@@ -139,30 +139,21 @@ body {
   border-radius: 6px;
 }
 
-.nav-home-btn {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-soft);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  padding: 4px 12px;
-  border-radius: 7px;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-  line-height: 1;
-}
-.nav-home-btn:hover {
-  background: var(--surface2);
-  border-color: var(--border-light);
-  color: var(--accent);
-}
-
 .nav-brand-sep {
   color: var(--text-muted);
   font-size: 15px;
   opacity: 0.4;
   font-weight: 400;
   user-select: none;
+}
+
+/* Home ikonu nav-brand içinde — aktif sayfada accent, diğer sayfalarda hover ile */
+.nav-home-icon.active {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.nav-home-icon.active:hover {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 .nav-right {
