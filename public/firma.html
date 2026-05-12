@@ -967,7 +967,7 @@
         h.faturaKuru = null;
       }
       const row = faturaBtn.closest('.hizmet-row');
-      if (row) row.children[1].innerHTML = getStatusBadge(h);
+      if (row) row.children[1].outerHTML = getStatusBadge(h);
       toggleFatura(id, newVal).finally(() => { faturaBtn.disabled = false; });
       return;
     }
@@ -995,7 +995,7 @@
         h.odemeKuru = null;
       }
       const row = payBtn.closest('.hizmet-row');
-      if (row) row.children[1].innerHTML = getStatusBadge(h);
+      if (row) row.children[1].outerHTML = getStatusBadge(h);
       toggleOdeme(id, newVal).finally(() => { payBtn.disabled = false; });
       return;
     }
