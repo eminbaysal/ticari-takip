@@ -283,15 +283,18 @@
         <span>İşlemler</span>
       </div>
       ${firmalar.map(f => {
-        const fin   = f.fin || { toplam: 0, fatura: 0, odeme: 0, kesilmemis: 0, usdVarMi: false, usdKesilmemisVar: false };
-        // Kalan Bakiye = henüz fatura kesilmemiş hizmetlerin toplamı
-        const kalan = fin.kesilmemis || 0;
+        const fin   = f.fin || { toplam: 0, fatura: 0, odeme: 0, kesilmemis: 0, usdKesilmemis: 0, usdVarMi: false };
+        // Kalan Bakiye = fatura kesilmemiş TRY tutarı + fatura kesilmemiş USD tutarının güncel kur TL karşılığı
+        const usdKalanTL = (fin.usdKesilmemis || 0) > 0 && kurUSD ? fin.usdKesilmemis * kurUSD : 0;
+        const kalan      = (fin.kesilmemis || 0) + usdKalanTL;
         // "Tamamlandı" ancak TRY ve USD hizmetlerin tamamı faturalandıysa göster
-        const tumFaturaKesildi = kalan === 0 && !fin.usdKesilmemisVar && (fin.toplam > 0 || fin.fatura > 0);
-        const kalanHtml = tumFaturaKesildi
+        const tumFaturaKesildi = kalan === 0 && (fin.toplam > 0 || fin.fatura > 0);
+        // Kur bilinmiyorsa USD kesilmemişi ayrıca göster
+        const usdKalanBilinmiyor = (fin.usdKesilmemis || 0) > 0 && !kurUSD;
+        const kalanHtml = tumFaturaKesildi && !usdKalanBilinmiyor
           ? `<span class="badge badge-glowing" style="font-size:10px;padding:2px 8px;width:auto;">Tamamlandı ✓</span>`
-          : kalan > 0
-            ? `<span class="firma-kalan-warn">${formatPara(kalan)}</span>`
+          : (kalan > 0 || usdKalanBilinmiyor)
+            ? `<span class="firma-kalan-warn">${kalan > 0 ? formatPara(kalan) : ''}${usdKalanBilinmiyor ? `<span style="font-size:10px;color:var(--warn);display:block;">+$${new Intl.NumberFormat('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}).format(fin.usdKesilmemis)} USD</span>` : ''}</span>`
             : `<span style="opacity:0.28">—</span>`;
         return `
         <div class="firma-liste-row ${seciliFirmaId === f._id ? 'aktif' : ''}" data-id="${f._id}" style="cursor:pointer;">
