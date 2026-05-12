@@ -295,17 +295,32 @@
     }
   }
   const durumLabels = {
-    'bekliyor': 'Bekliyor',
+    'bekliyor':   'Bekliyor',
     'tamamlandi': 'Tamamlandı',
-    'fatura-kesildi': 'Ödeme Bekleniyor',
-    'tahsil-edildi': 'Ödeme Alındı ✓'
+    'fatura-kesildi': 'Fatura Kesildi',
+    'tahsil-edildi':  'Ödeme Alındı ✓'
   };
   const durumClass = {
-    'bekliyor': 'badge-warn',
+    'bekliyor':   'badge-warn',
     'tamamlandi': 'badge-info',
-    'fatura-kesildi': 'badge-danger',
-    'tahsil-edildi': 'badge-glowing'
+    'fatura-kesildi': 'badge-fatura',
+    'tahsil-edildi':  'badge-glowing'
   };
+
+  // Bağımsız flag'lere göre durum badge HTML'i döner
+  function getStatusBadge(h) {
+    const isFatura = h.faturaKesildi === true || h.durum === 'fatura-kesildi';
+    const isTahsil = h.tahsilEdildi  === true || h.durum === 'tahsil-edildi';
+    if (isFatura && isTahsil) {
+      return `<div style="display:flex;flex-direction:column;gap:3px;padding:0 4px;">
+        <span class="badge badge-fatura" style="font-size:9px;padding:2px 6px;width:auto;justify-content:center;">Fatura ✓</span>
+        <span class="badge badge-glowing" style="font-size:9px;padding:2px 6px;width:auto;justify-content:center;">Ödeme ✓</span>
+      </div>`;
+    }
+    if (isTahsil) return `<span class="badge badge-glowing">Ödeme Alındı ✓</span>`;
+    if (isFatura) return `<span class="badge badge-fatura">Fatura Kesildi</span>`;
+    return `<span class="badge ${durumClass[h.durum] || 'badge-warn'}">${durumLabels[h.durum] || h.durum}</span>`;
+  }
 
   async function checkAuth() {
     const res = await fetch('/api/auth/me');
@@ -366,10 +381,13 @@
         <span></span>
         <span></span>
       </div>
-      ${hizmetler.map(h => `
+      ${hizmetler.map(h => {
+        const isFatura = h.faturaKesildi === true || h.durum === 'fatura-kesildi';
+        const isTahsil = h.tahsilEdildi  === true || h.durum === 'tahsil-edildi';
+        return `
       <div class="hizmet-row">
         <span class="tip-badge">${escHtml(tipLabels[h.tip] || h.tip)}</span>
-        <span class="badge ${durumClass[h.durum] || 'badge-warn'}">${durumLabels[h.durum] || h.durum}</span>
+        ${getStatusBadge(h)}
         <div class="hizmet-aciklama">
           ${h.tip === 'urun-tedariki' && h.urunAdi
             ? `<div style="display:flex;align-items:baseline;gap:8px;min-width:0;">
@@ -382,15 +400,19 @@
         </div>
         <span class="hizmet-tarih">${h.tarih ? formatTarih(h.tarih) : ''}</span>
         <span class="hizmet-fiyat">${formatFiyat(h.fiyat, h.paraBirimi)}</span>
-        <div style="display:flex;align-items:center;justify-content:center;">
-          <button class="tick-btn ${h.durum === 'tahsil-edildi' ? 'checked' : ''}" data-hid="${h._id}" title="${h.durum === 'tahsil-edildi' ? 'Geri al' : 'Ödeme alındı olarak işaretle'}">✓</button>
+        <div style="display:flex;align-items:center;justify-content:center;gap:5px;">
+          <button class="action-icon-btn fatura-btn${isFatura ? ' checked' : ''}" data-hid="${h._id}" title="Fatura Kesildi">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1z"/><path d="M16 8H8M16 12H8M12 16H8"/></svg>
+          </button>
+          <button class="action-icon-btn pay-btn${isTahsil ? ' checked' : ''}" data-hid="${h._id}" title="Ödeme Alındı">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+          </button>
         </div>
         <div class="hizmet-actions">
           <button class="btn-icon edit-hizmet-btn" data-hid="${h._id}">✎</button>
           <button class="btn-icon danger delete-hizmet-btn" data-hid="${h._id}">✕</button>
         </div>
-      </div>
-      `).join('')}
+      </div>`; }).join('')}
     </div>`;
 
   }
@@ -465,17 +487,34 @@
     document.addEventListener('mousemove', posTooltip);
   }
 
-  async function toggleOdeme(id, alindi) {
-    const h = hizmetler.find(x => x._id === id);
-    if (!h) return;
-    const yeniDurum = alindi ? 'tahsil-edildi' : (h.oncekiDurum || 'bekliyor');
-    const yeniOnceki = alindi ? h.durum : '';
-    const res = await fetch(`/api/hizmetler/${id}/durum`, {
+  async function toggleFatura(id, aktif) {
+    const res = await fetch(`/api/hizmetler/${id}/flags`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ durum: yeniDurum, oncekiDurum: yeniOnceki })
+      body: JSON.stringify({ faturaKesildi: aktif })
     });
-    if (res.ok) loadDetay();
+    if (res.ok) {
+      const updated = await res.json();
+      const idx = hizmetler.findIndex(x => x._id === id);
+      if (idx !== -1) hizmetler[idx] = updated;
+      renderHizmetler();
+      updateToplam();
+    }
+  }
+
+  async function toggleOdeme(id, aktif) {
+    const res = await fetch(`/api/hizmetler/${id}/flags`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tahsilEdildi: aktif })
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      const idx = hizmetler.findIndex(x => x._id === id);
+      if (idx !== -1) hizmetler[idx] = updated;
+      renderHizmetler();
+      updateToplam();
+    }
   }
 
   function closeHizmetModal() {
@@ -624,20 +663,46 @@
   });
 
   document.getElementById('hizmetListesi').addEventListener('click', e => {
-    const tickBtn = e.target.closest('.tick-btn[data-hid]');
-    if (tickBtn) {
+    // Fatura Kesildi butonu
+    const faturaBtn = e.target.closest('.fatura-btn[data-hid]');
+    if (faturaBtn) {
       e.stopPropagation();
-      const id = tickBtn.dataset.hid;
+      const id = faturaBtn.dataset.hid;
       const h = hizmetler.find(x => x._id === id);
       if (!h) return;
-      const alindi = h.durum !== 'tahsil-edildi';
+      const curFatura = h.faturaKesildi === true || h.durum === 'fatura-kesildi';
+      const newVal = !curFatura;
       // Anlık görsel tepki
-      tickBtn.classList.toggle('checked', alindi);
-      tickBtn.title = alindi ? 'Geri al' : 'Ödeme alındı olarak işaretle';
-      tickBtn.disabled = true;
-      toggleOdeme(id, alindi).finally(() => { tickBtn.disabled = false; });
+      faturaBtn.classList.toggle('checked', newVal);
+      faturaBtn.disabled = true;
+      // Optimistik yerel güncelleme
+      h.faturaKesildi = newVal;
+      const row = faturaBtn.closest('.hizmet-row');
+      if (row) row.children[1].innerHTML = getStatusBadge(h);
+      toggleFatura(id, newVal).finally(() => { faturaBtn.disabled = false; });
       return;
     }
+
+    // Ödeme Alındı butonu
+    const payBtn = e.target.closest('.pay-btn[data-hid]');
+    if (payBtn) {
+      e.stopPropagation();
+      const id = payBtn.dataset.hid;
+      const h = hizmetler.find(x => x._id === id);
+      if (!h) return;
+      const curTahsil = h.tahsilEdildi === true || h.durum === 'tahsil-edildi';
+      const newVal = !curTahsil;
+      // Anlık görsel tepki
+      payBtn.classList.toggle('checked', newVal);
+      payBtn.disabled = true;
+      // Optimistik yerel güncelleme
+      h.tahsilEdildi = newVal;
+      const row = payBtn.closest('.hizmet-row');
+      if (row) row.children[1].innerHTML = getStatusBadge(h);
+      toggleOdeme(id, newVal).finally(() => { payBtn.disabled = false; });
+      return;
+    }
+
     const editBtn = e.target.closest('.edit-hizmet-btn[data-hid]');
     if (editBtn) { openEditHizmet(editBtn.dataset.hid); return; }
     const deleteBtn = e.target.closest('.delete-hizmet-btn[data-hid]');

@@ -14,6 +14,8 @@ const hizmetSchema = new mongoose.Schema({
   oncekiDurum: { type: String, default: '' },
   fiyat: { type: Number, default: null },
   paraBirimi: { type: String, enum: ['TRY', 'USD'], default: 'TRY' },
+  faturaKesildi: { type: Boolean, default: false },
+  tahsilEdildi:  { type: Boolean, default: false },
   durum: {
     type: String,
     required: true,

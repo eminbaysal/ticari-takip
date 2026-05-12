@@ -7,22 +7,25 @@ const Firma = require('../models/Firma');
 router.get('/ozet', async (req, res) => {
   try {
     const hizmetler = await Hizmet.find({ fiyat: { $ne: null } });
-    let tryToplam = 0, tryTahsil = 0, tryBekleyen = 0;
-    let usdToplam = 0, usdTahsil = 0, usdBekleyen = 0;
+    let tryToplam = 0, tryTahsil = 0, tryBekleyen = 0, tryFatura = 0;
+    let usdToplam = 0, usdTahsil = 0, usdBekleyen = 0, usdFatura = 0;
     hizmetler.forEach(h => {
       const f = h.fiyat || 0;
       const pb = h.paraBirimi || 'TRY';
+      // Yeni boolean flag'ler birincil kaynak; yoksa eski durum alanına bak (geriye dönük uyum)
+      const isFatura = h.faturaKesildi === true || h.durum === 'fatura-kesildi';
+      const isTahsil = h.tahsilEdildi  === true || h.durum === 'tahsil-edildi';
       if (pb === 'USD') {
         usdToplam += f;
-        if (h.durum === 'tahsil-edildi') usdTahsil += f;
-        else usdBekleyen += f;
+        if (isTahsil) usdTahsil += f; else usdBekleyen += f;
+        if (isFatura)  usdFatura += f;
       } else {
         tryToplam += f;
-        if (h.durum === 'tahsil-edildi') tryTahsil += f;
-        else tryBekleyen += f;
+        if (isTahsil) tryTahsil += f; else tryBekleyen += f;
+        if (isFatura)  tryFatura += f;
       }
     });
-    res.json({ tryToplam, tryTahsil, tryBekleyen, usdToplam, usdTahsil, usdBekleyen });
+    res.json({ tryToplam, tryTahsil, tryBekleyen, tryFatura, usdToplam, usdTahsil, usdBekleyen, usdFatura });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -86,7 +89,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// Sadece durum güncelle (tick için)
+// Sadece durum güncelle (eski uyum için)
 router.patch('/:id/durum', async (req, res) => {
   try {
     const { durum, oncekiDurum } = req.body;
@@ -97,6 +100,41 @@ router.patch('/:id/durum', async (req, res) => {
     );
     if (!hizmet) return res.status(404).json({ error: 'Hizmet bulunamadı.' });
     res.json(hizmet);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Bağımsız fatura / tahsil flag toggle
+router.patch('/:id/flags', async (req, res) => {
+  try {
+    const hizmet = await Hizmet.findById(req.params.id);
+    if (!hizmet) return res.status(404).json({ error: 'Hizmet bulunamadı.' });
+
+    // Mevcut efektif durumu hesapla (eski durum alanı → geriye dönük uyum)
+    const curFatura = hizmet.faturaKesildi === true || hizmet.durum === 'fatura-kesildi';
+    const curTahsil = hizmet.tahsilEdildi  === true || hizmet.durum === 'tahsil-edildi';
+
+    const newFatura = req.body.faturaKesildi !== undefined ? req.body.faturaKesildi : curFatura;
+    const newTahsil = req.body.tahsilEdildi  !== undefined ? req.body.tahsilEdildi  : curTahsil;
+
+    // durum alanını yeni flag'lerle senkronize et (toplam hesaplamaları için)
+    const billingDurums = ['fatura-kesildi', 'tahsil-edildi'];
+    const baseDurum = !billingDurums.includes(hizmet.durum)
+      ? hizmet.durum
+      : (hizmet.oncekiDurum || 'bekliyor');
+
+    let durum;
+    if (newTahsil)       durum = 'tahsil-edildi';
+    else if (newFatura)  durum = 'fatura-kesildi';
+    else                 durum = baseDurum;
+
+    const updated = await Hizmet.findByIdAndUpdate(
+      req.params.id,
+      { faturaKesildi: newFatura, tahsilEdildi: newTahsil, durum },
+      { new: true }
+    );
+    res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
