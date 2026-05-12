@@ -33,7 +33,7 @@
 
 <div class="container">
   <div class="firma-detay-header" id="firmaDetayHeader">
-    <div style="display:flex;align-items:center;gap:12px;">
+    <div class="firma-header-left" style="display:flex;align-items:center;gap:12px;min-width:0;">
       <a href="/" class="back-arrow-btn" title="Ana Sayfa">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><polyline points="15 18 9 12 15 6"/></svg>
       </a>
@@ -62,8 +62,8 @@
   <!-- Hizmet Kayıtları -->
   <div class="section-header" style="margin-top:24px;">
     <h2>Hizmet Kayıtları</h2>
-    <div style="display:flex;align-items:center;gap:16px;">
-      <span id="kurBilgi" style="font-size:13px;color:var(--text-muted);"></span>
+    <div class="hizmet-section-right" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;">
+      <span id="kurBilgi" style="font-size:12px;color:var(--text-muted);white-space:nowrap;"></span>
       <button class="btn-primary" onclick="openHizmetModal()">+ Hizmet Ekle</button>
     </div>
   </div>
@@ -286,8 +286,8 @@
     const el = document.getElementById('kurBilgi');
     if (!el) return;
     el.innerHTML = kurUSD
-      ? `1 USD = <strong>₺${new Intl.NumberFormat('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}).format(kurUSD)}</strong> &nbsp;<button onclick="manuelKur()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:12px;padding:0;">✎ Düzenle</button>`
-      : `<span style="color:var(--warn);">Kur alınamadı</span> &nbsp;<button onclick="manuelKur()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:12px;padding:0;">Manuel gir</button>`;
+      ? `1 USD = <strong>₺${new Intl.NumberFormat('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}).format(kurUSD)}</strong> <span class="kur-duzenle-wrap"><button onclick="manuelKur()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:11px;padding:0 2px;">✎</button></span>`
+      : `<button onclick="manuelKur()" style="background:none;border:none;color:var(--warn);cursor:pointer;font-size:12px;padding:0;">Kur gir ⚠</button>`;
   }
 
   function manuelKur() {
@@ -604,11 +604,11 @@
       let kombine = '';
       if (kurUSD) {
         const komTL = tryT + usdT * kurUSD;
-        kombine = ` &nbsp;|&nbsp; Kombine: ${formatPara(komTL)}`;
+        kombine = `<span class="toplam-kombine"> · ${formatPara(komTL)}</span>`;
       }
-      html = `TL: ${formatPara(tryT)} &nbsp;|&nbsp; <span class="currency" style="font-family:inherit;">$</span>${usdFmt} USD${kombine}`;
+      html = `<span class="toplam-try">₺ ${new Intl.NumberFormat('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}).format(tryT)}</span><span class="toplam-sep"> · </span><span class="toplam-usd">$ ${usdFmt}</span>${kombine}`;
     } else {
-      html = 'Toplam: ' + formatPara(tryT);
+      html = formatPara(tryT);
     }
     document.getElementById('toplamBadge').innerHTML = html;
   }
@@ -655,7 +655,7 @@
         </div>
         <span class="hizmet-tarih">${h.tarih ? formatTarih(h.tarih) : ''}</span>
         <span class="hizmet-fiyat">${formatFiyat(h.fiyat, h.paraBirimi, h)}</span>
-        <div style="display:flex;align-items:center;justify-content:center;gap:5px;">
+        <div class="hizmet-flags" style="display:flex;align-items:center;justify-content:center;gap:5px;">
           <button class="action-icon-btn fatura-btn${isFatura ? ' checked' : ''}" data-hid="${h._id}" title="Fatura Kesildi">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1z"/><path d="M16 8H8M16 12H8M12 16H8"/></svg>
           </button>
