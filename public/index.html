@@ -89,7 +89,6 @@
       </div>
       <input type="text" class="search-input" id="aramaInput" placeholder="Firma ara..." oninput="filterFirmalar()" />
       <div id="firmaListesi"></div>
-      <div id="firmaIpucu" style="text-align:center;padding:16px 0 4px;font-size:12px;color:var(--text-muted);opacity:0.7;">Önizlemek için bir firmaya tıklayın</div>
     </div>
 
     <!-- Sağ: Önizleme -->
@@ -253,7 +252,7 @@
   }
 
   async function loadFirmalar() {
-    const res = await fetch('/api/firmalar');
+    const res = await fetch('/api/firmalar/finansal');
     if (!res.ok) { if (res.status === 401) window.location.href = '/login'; return; }
     tumFirmalar = await res.json();
     firmaMap = {};
@@ -261,29 +260,55 @@
     renderFirmalar(tumFirmalar);
   }
 
+  // Kolon başlığı ikonları
+  const icoWallet   = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg>`;
+  const icoReceipt  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1z"/><path d="M16 8H8M16 12H8M12 16H8"/></svg>`;
+  const icoBanknote = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>`;
+  const icoBalance  = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`;
+
   function renderFirmalar(firmalar) {
     const el = document.getElementById('firmaListesi');
     if (!firmalar.length) {
       el.innerHTML = '<div class="empty-state">Henüz firma eklenmedi.</div>';
       return;
     }
+
     el.innerHTML = `<div class="firma-liste">
       <div class="firma-liste-baslik">
-        <span>Firma Adı</span>
+        <span style="text-align:left;padding-left:2px;">Firma Adı</span>
+        <span class="col-header-fin">${icoWallet}<span>Toplam Tutar</span></span>
+        <span class="col-header-fin">${icoReceipt}<span>Kesilen Fatura</span></span>
+        <span class="col-header-fin">${icoBanknote}<span>Alınan Ödeme</span></span>
+        <span class="col-header-fin">${icoBalance}<span>Kalan Bakiye</span></span>
         <span>İşlemler</span>
       </div>
-      ${firmalar.map(f => `
-      <div class="firma-liste-row ${seciliFirmaId === f._id ? 'aktif' : ''}" data-id="${f._id}" style="cursor:pointer;">
-        <div style="display:flex;align-items:center;gap:11px;min-width:0;">
-          ${firmaLogo(f)}
-          <div class="firma-liste-ad">${escHtml(f.ad)}</div>
-        </div>
-        <div class="firma-liste-actions">
-          <button class="btn-icon edit-btn" data-id="${f._id}">✎</button>
-          <button class="btn-icon danger delete-btn" data-id="${f._id}">✕</button>
-        </div>
-      </div>
-      `).join('')}
+      ${firmalar.map(f => {
+        const fin   = f.fin || { toplam: 0, fatura: 0, odeme: 0, usdVarMi: false };
+        const kalan = Math.max(0, fin.fatura - fin.odeme);
+        const kalanHtml = kalan === 0 && fin.fatura > 0
+          ? `<span class="badge badge-glowing" style="font-size:10px;padding:2px 8px;width:auto;">Tamamlandı ✓</span>`
+          : kalan > 0
+            ? `<span class="firma-kalan-warn">${formatPara(kalan)}</span>`
+            : `<span style="opacity:0.28">—</span>`;
+        return `
+        <div class="firma-liste-row ${seciliFirmaId === f._id ? 'aktif' : ''}" data-id="${f._id}" style="cursor:pointer;">
+          <div style="display:flex;align-items:center;gap:11px;min-width:0;">
+            ${firmaLogo(f)}
+            <div style="min-width:0;">
+              <div class="firma-liste-ad">${escHtml(f.ad)}</div>
+              ${fin.usdVarMi ? `<div style="font-size:10px;color:#22c55e;opacity:0.8;margin-top:1px;">+USD</div>` : ''}
+            </div>
+          </div>
+          <div class="firma-fin-val firma-col-toplam">${fin.toplam > 0 ? formatPara(fin.toplam) : '<span style="opacity:0.28">—</span>'}</div>
+          <div class="firma-fin-val firma-col-fatura${fin.fatura === 0 ? ' fin-pending' : ''}">${fin.fatura > 0 ? formatPara(fin.fatura) : '<span style="opacity:0.28">—</span>'}</div>
+          <div class="firma-fin-val fin-success firma-col-odeme">${fin.odeme > 0 ? formatPara(fin.odeme) : '<span style="opacity:0.28">—</span>'}</div>
+          <div class="firma-fin-val firma-col-kalan">${kalanHtml}</div>
+          <div class="firma-liste-actions">
+            <button class="btn-icon edit-btn" data-id="${f._id}">✎</button>
+            <button class="btn-icon danger delete-btn" data-id="${f._id}">✕</button>
+          </div>
+        </div>`;
+      }).join('')}
     </div>`;
 
     el.querySelectorAll('.firma-liste-row').forEach(row => {

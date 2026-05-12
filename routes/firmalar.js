@@ -13,6 +13,39 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Firmalar + finansal özet (tek sorguda)
+router.get('/finansal', async (req, res) => {
+  try {
+    const firmalar  = await Firma.find().sort({ ad: 1 });
+    const hizmetler = await Hizmet.find({ fiyat: { $ne: null } });
+
+    const finMap = {};
+    hizmetler.forEach(h => {
+      const fId = h.firma.toString();
+      if (!finMap[fId]) finMap[fId] = { toplam: 0, fatura: 0, odeme: 0, usdVarMi: false };
+      const fiyat   = h.fiyat || 0;
+      const isTRY   = (h.paraBirimi || 'TRY') !== 'USD';
+      const isFatura = h.faturaKesildi === true || h.durum === 'fatura-kesildi';
+      const isTahsil = h.tahsilEdildi  === true || h.durum === 'tahsil-edildi';
+      if (isTRY) {
+        finMap[fId].toplam += fiyat;
+        if (isFatura) finMap[fId].fatura += fiyat;
+        if (isTahsil) finMap[fId].odeme  += fiyat;
+      } else {
+        finMap[fId].usdVarMi = true;
+      }
+    });
+
+    const result = firmalar.map(f => ({
+      ...f.toObject(),
+      fin: finMap[f._id.toString()] || { toplam: 0, fatura: 0, odeme: 0, usdVarMi: false }
+    }));
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Firma oluştur
 router.post('/', async (req, res) => {
   try {
