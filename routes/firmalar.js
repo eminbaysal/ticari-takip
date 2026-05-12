@@ -22,7 +22,7 @@ router.get('/finansal', async (req, res) => {
     const finMap = {};
     hizmetler.forEach(h => {
       const fId = h.firma.toString();
-      if (!finMap[fId]) finMap[fId] = { toplam: 0, fatura: 0, odeme: 0, kesilmemis: 0, usdVarMi: false };
+      if (!finMap[fId]) finMap[fId] = { toplam: 0, fatura: 0, odeme: 0, kesilmemis: 0, usdVarMi: false, usdKesilmemisVar: false };
       const fiyat    = h.fiyat || 0;
       const isTRY    = (h.paraBirimi || 'TRY') !== 'USD';
       const isFatura = h.faturaKesildi === true || h.durum === 'fatura-kesildi';
@@ -34,6 +34,7 @@ router.get('/finansal', async (req, res) => {
         if (isTahsil) finMap[fId].odeme     += fiyat;
       } else {
         finMap[fId].usdVarMi = true;
+        if (!isFatura) finMap[fId].usdKesilmemisVar = true; // faturası kesilmemiş USD hizmet var
         // TL snapshot: USD hizmetler için TL karşılığını ekle
         if (isFatura && h.faturaTL != null) finMap[fId].fatura += h.faturaTL;
         if (isTahsil && h.odemeTL  != null) finMap[fId].odeme  += h.odemeTL;
@@ -42,7 +43,7 @@ router.get('/finansal', async (req, res) => {
 
     const result = firmalar.map(f => ({
       ...f.toObject(),
-      fin: finMap[f._id.toString()] || { toplam: 0, fatura: 0, odeme: 0, kesilmemis: 0, usdVarMi: false }
+      fin: finMap[f._id.toString()] || { toplam: 0, fatura: 0, odeme: 0, kesilmemis: 0, usdVarMi: false, usdKesilmemisVar: false }
     }));
     res.json(result);
   } catch (err) {

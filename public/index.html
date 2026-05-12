@@ -283,10 +283,12 @@
         <span>İşlemler</span>
       </div>
       ${firmalar.map(f => {
-        const fin   = f.fin || { toplam: 0, fatura: 0, odeme: 0, kesilmemis: 0, usdVarMi: false };
+        const fin   = f.fin || { toplam: 0, fatura: 0, odeme: 0, kesilmemis: 0, usdVarMi: false, usdKesilmemisVar: false };
         // Kalan Bakiye = henüz fatura kesilmemiş hizmetlerin toplamı
         const kalan = fin.kesilmemis || 0;
-        const kalanHtml = kalan === 0 && fin.toplam > 0
+        // "Tamamlandı" ancak TRY ve USD hizmetlerin tamamı faturalandıysa göster
+        const tumFaturaKesildi = kalan === 0 && !fin.usdKesilmemisVar && (fin.toplam > 0 || fin.fatura > 0);
+        const kalanHtml = tumFaturaKesildi
           ? `<span class="badge badge-glowing" style="font-size:10px;padding:2px 8px;width:auto;">Tamamlandı ✓</span>`
           : kalan > 0
             ? `<span class="firma-kalan-warn">${formatPara(kalan)}</span>`
