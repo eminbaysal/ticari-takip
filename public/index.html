@@ -191,8 +191,16 @@
     'devreye-alma': 'Devreye Alma',
     'diger': 'Diğer'
   };
-  const durumLabels = { 'bekliyor': 'Bekliyor', 'tamamlandi': 'Tamamlandı', 'tahsil-edildi': 'Tahsil Edildi' };
-  const durumClass  = { 'bekliyor': 'badge-warn', 'tamamlandi': 'badge-info', 'tahsil-edildi': 'badge-success' };
+  // Önizleme: hizmetin efektif durumunu döner (yeni flag sistemi + geriye dönük uyum)
+  function getOnizlemeDurum(h) {
+    const isFatura = h.faturaKesildi === true || h.durum === 'fatura-kesildi';
+    const isTahsil = h.tahsilEdildi  === true || h.durum === 'tahsil-edildi';
+    if (isTahsil && isFatura) return { label: 'Fatura+Ödeme', cls: 'badge-glowing' };
+    if (isTahsil)  return { label: 'Ödeme ✓',    cls: 'badge-glowing' };
+    if (isFatura)  return { label: 'Fatura ✓',   cls: 'badge-fatura'  };
+    if (h.durum === 'tamamlandi') return { label: 'Tamamlandı', cls: 'badge-info' };
+    return { label: 'Bekliyor', cls: 'badge-warn' };
+  }
 
   function applyTheme(next) {
     document.documentElement.dataset.theme = next;
@@ -398,17 +406,20 @@
     if (!d.hizmetler.length) {
       hEl.innerHTML = '<div class="empty-state" style="padding:24px 0;">Henüz hizmet kaydı yok.</div>';
     } else {
+      const ONIZLEME_COLS = '1fr auto 78px';
       hEl.innerHTML = `<div class="hizmet-liste" style="margin-top:0;">
-        <div class="hizmet-liste-baslik" style="grid-template-columns:130px 100px 1fr 90px;">
-          <span>Tip</span><span>Durum</span><span>Açıklama</span><span>Fiyat</span>
+        <div class="hizmet-liste-baslik" style="grid-template-columns:${ONIZLEME_COLS};padding:4px 10px;font-size:10px;gap:6px;">
+          <span>Hizmet</span><span>Durum</span><span style="text-align:right;">Fiyat</span>
         </div>
-        ${d.hizmetler.map(h => `
-        <div class="hizmet-row" style="grid-template-columns:130px 100px 1fr 90px;">
-          <span class="tip-badge">${escHtml(tipLabels[h.tip] || h.tip)}</span>
-          <span class="badge ${durumClass[h.durum]}">${durumLabels[h.durum] || h.durum}</span>
-          <div class="hizmet-aciklama" onmouseenter="showTooltip(event,this)" onmouseleave="hideTooltip()">${escHtml(h.aciklama)}</div>
-          <span class="hizmet-fiyat">${formatFiyat(h.fiyat, h.paraBirimi)}</span>
-        </div>`).join('')}
+        ${d.hizmetler.map(h => {
+          const st = getOnizlemeDurum(h);
+          return `
+        <div class="hizmet-row" style="grid-template-columns:${ONIZLEME_COLS};padding:5px 10px;min-height:0;gap:6px;align-items:center;">
+          <span class="tip-badge" style="font-size:10px;padding:2px 7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;">${escHtml(tipLabels[h.tip] || h.tip)}</span>
+          <span class="badge ${st.cls}" style="font-size:9px;padding:2px 6px;white-space:nowrap;">${st.label}</span>
+          <span class="hizmet-fiyat" style="font-size:12px;text-align:right;">${formatFiyat(h.fiyat, h.paraBirimi)}</span>
+        </div>`;
+        }).join('')}
       </div>`;
     }
 
