@@ -429,7 +429,7 @@
           const st = getOnizlemeDurum(h);
           return `
         <div class="hizmet-row" style="grid-template-columns:${OC};padding:5px 10px 5px 12px;min-height:32px;gap:8px;align-items:center;border-left:none;">
-          <span class="tip-badge" style="font-size:10px;padding:2px 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;text-align:center;">${escHtml(tipLabels[h.tip] || h.tip)}</span>
+          <span class="tip-badge tip-${h.tip}" style="font-size:10px;padding:2px 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;text-align:center;">${escHtml(tipLabels[h.tip] || h.tip)}</span>
           <span class="badge ${st.cls}" style="font-size:9px;padding:2px 5px;white-space:nowrap;text-align:center;justify-content:center;display:flex;">${st.label}</span>
           <span class="hizmet-fiyat" style="font-size:12px;text-align:right;white-space:nowrap;">${formatFiyatOnizleme(h.fiyat, h.paraBirimi)}</span>
         </div>`;
