@@ -176,7 +176,7 @@
     <div class="modal-grid">
       <div>
         <label>Paket / Hizmet Adı *</label>
-        <input type="text" id="abPaketAdi" class="modal-input" placeholder="Örn: Turkcell Superonline 100 Mbps" />
+        <input type="text" id="abPaketAdi" class="modal-input" placeholder="Örn: E Telekom Husamonline 1 Gbps" />
       </div>
       <div>
         <label>Başlangıç Tarihi *</label>
@@ -184,13 +184,9 @@
       </div>
       <div>
         <label>Aylık Ücret *</label>
-        <div style="display:flex;gap:8px;">
-          <select id="abParaBirimi" class="modal-input modal-select" style="width:90px;flex-shrink:0;">
-            <option value="TRY">₺ TL</option>
-            <option value="USD">$ USD</option>
-            <option value="EUR">€ EUR</option>
-          </select>
-          <input type="number" id="abAylikUcret" class="modal-input" placeholder="0.00" step="0.01" min="0" style="flex:1;" />
+        <div style="display:flex;align-items:center;gap:0;">
+          <span style="padding:0 10px;height:38px;display:flex;align-items:center;background:var(--surface2);border:1px solid var(--border);border-right:none;border-radius:8px 0 0 8px;font-size:15px;color:var(--text-soft);flex-shrink:0;">₺</span>
+          <input type="number" id="abAylikUcret" class="modal-input" placeholder="0,00" step="0.01" min="0" style="border-radius:0 8px 8px 0;" />
         </div>
       </div>
       <div>
@@ -370,7 +366,6 @@
     document.getElementById('abonelikModalBaslik').textContent = 'İnternet Aboneliği Ekle';
     document.getElementById('abPaketAdi').value   = '';
     document.getElementById('abBaslangic').value  = new Date().toISOString().slice(0, 10);
-    document.getElementById('abParaBirimi').value = 'TRY';
     document.getElementById('abAylikUcret').value = '';
     document.getElementById('abDevreAlma').value  = '';
     document.getElementById('abAciklama').value   = '';
@@ -385,7 +380,6 @@
     document.getElementById('abonelikModalBaslik').textContent = 'Abonelik Düzenle';
     document.getElementById('abPaketAdi').value   = ab.paketAdi;
     document.getElementById('abBaslangic').value  = ab.baslangicTarihi.slice(0, 10);
-    document.getElementById('abParaBirimi').value = ab.paraBirimi || 'TRY';
     document.getElementById('abAylikUcret').value = ab.aylikUcret;
     document.getElementById('abDevreAlma').value  = ab.devreAlmaUcreti || '';
     document.getElementById('abAciklama').value   = ab.aciklama || '';
@@ -400,7 +394,7 @@
   async function saveAbonelik() {
     const paketAdi       = document.getElementById('abPaketAdi').value.trim();
     const baslangic      = document.getElementById('abBaslangic').value;
-    const paraBirimi     = document.getElementById('abParaBirimi').value;
+    const paraBirimi     = 'TRY';
     const aylikUcret     = document.getElementById('abAylikUcret').value;
     const devreAlma      = document.getElementById('abDevreAlma').value;
     const aciklama       = document.getElementById('abAciklama').value.trim();
