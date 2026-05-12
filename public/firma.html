@@ -550,23 +550,15 @@
   function getStatusBadge(h) {
     const isFatura = h.faturaKesildi === true || h.durum === 'fatura-kesildi';
     const isTahsil = h.tahsilEdildi  === true || h.durum === 'tahsil-edildi';
-    const isUSD    = (h.paraBirimi || 'TRY') === 'USD';
-
-    function tlSatir(tl, kur) {
-      if (!tl) return '';
-      const tlFmt  = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(tl);
-      const kurFmt = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(kur);
-      return `<div class="tl-karsiligi-wrap"><span class="tl-karsiligi">₺${tlFmt}</span><span class="kur-bilgi">@${kurFmt}</span></div>`;
-    }
 
     if (isFatura && isTahsil) {
       return `<div style="display:flex;flex-direction:column;gap:3px;padding:0 4px;">
-        <div><span class="badge badge-fatura" style="font-size:9px;padding:2px 6px;">Fatura ✓</span>${isUSD ? tlSatir(h.faturaTL, h.faturaKuru) : ''}</div>
-        <div><span class="badge badge-glowing" style="font-size:9px;padding:2px 6px;">Ödeme ✓</span>${isUSD ? tlSatir(h.odemeTL, h.odemeKuru) : ''}</div>
+        <div><span class="badge badge-fatura" style="font-size:9px;padding:2px 6px;">Fatura ✓</span></div>
+        <div><span class="badge badge-glowing" style="font-size:9px;padding:2px 6px;">Ödeme ✓</span></div>
       </div>`;
     }
-    if (isTahsil) return `<div><span class="badge badge-glowing" style="display:inline-flex;align-items:center;gap:4px;"><svg style="width:9px;height:9px;flex-shrink:0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Ödeme Alındı</span>${isUSD ? tlSatir(h.odemeTL, h.odemeKuru) : ''}</div>`;
-    if (isFatura) return `<div><span class="badge badge-fatura" style="display:inline-flex;align-items:center;gap:4px;"><svg style="width:9px;height:9px;flex-shrink:0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1z"/><path d="M16 8H8M16 12H8M12 16H8"/></svg>Fatura Kesildi</span>${isUSD ? tlSatir(h.faturaTL, h.faturaKuru) : ''}</div>`;
+    if (isTahsil) return `<span class="badge badge-glowing" style="display:inline-flex;align-items:center;gap:4px;"><svg style="width:9px;height:9px;flex-shrink:0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Ödeme Alındı</span>`;
+    if (isFatura) return `<span class="badge badge-fatura" style="display:inline-flex;align-items:center;gap:4px;"><svg style="width:9px;height:9px;flex-shrink:0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1z"/><path d="M16 8H8M16 12H8M12 16H8"/></svg>Fatura Kesildi</span>`;
     return `<span class="badge ${durumClass[h.durum] || 'badge-warn'}">${durumLabels[h.durum] || h.durum}</span>`;
   }
 
