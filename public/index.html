@@ -197,9 +197,9 @@
   function getOnizlemeDurum(h) {
     const isFatura = h.faturaKesildi === true || h.durum === 'fatura-kesildi';
     const isTahsil = h.tahsilEdildi  === true || h.durum === 'tahsil-edildi';
-    if (isTahsil && isFatura) return { label: 'F+Ö ✓',    cls: 'badge-glowing' };
-    if (isTahsil)             return { label: 'Ödeme ✓',  cls: 'badge-glowing' };
-    if (isFatura)             return { label: 'Fatura ✓', cls: 'badge-fatura'  };
+    if (isTahsil && isFatura) return { label: 'Fatura+Ödeme ✓', cls: 'badge-glowing' };
+    if (isTahsil)             return { label: 'Ödeme Alındı ✓', cls: 'badge-glowing' };
+    if (isFatura)             return { label: 'Fatura Kesildi',  cls: 'badge-fatura'  };
     if (h.durum === 'tamamlandi') return { label: 'Tamamlandı', cls: 'badge-info' };
     return { label: 'Bekliyor', cls: 'badge-warn' };
   }
@@ -419,8 +419,8 @@
     if (!d.hizmetler.length) {
       hEl.innerHTML = '<div class="empty-state" style="padding:24px 0;">Henüz hizmet kaydı yok.</div>';
     } else {
-      // Sabit genişlikler: tip 108px | durum 62px | fiyat kalan (sağa hizalı)
-      const OC = '108px 62px 1fr';
+      // tip 108px | durum otomatik genişlik | fiyat kalan (sağa hizalı)
+      const OC = '108px auto 1fr';
       hEl.innerHTML = `<div class="hizmet-liste" style="margin-top:0;">
         <div class="hizmet-liste-baslik" style="grid-template-columns:${OC};padding:4px 10px 4px 12px;font-size:10px;gap:8px;color:var(--text-muted);">
           <span>Hizmet</span><span style="text-align:center;">Durum</span><span style="text-align:right;">Fiyat</span>
