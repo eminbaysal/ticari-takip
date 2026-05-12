@@ -952,11 +952,18 @@ body {
   text-align: center;
 }
 
-/* Hizmet listesindeki badge'ler hücreyi doldursun */
+/* Hizmet listesindeki badge'ler hücreyi doldurur ve boyut standartlaştırılır */
 .hizmet-row .tip-badge,
 .hizmet-row .badge {
   width: 100%;
   justify-content: center;
+}
+/* Durum badge'leri tip badge ile aynı yükseklik
+   Double badge inline style="font-size:9px;padding:2px 6px;" ile korunuyor */
+.hizmet-row .badge {
+  padding: 4px 9px;
+  font-size: 11px;
+  font-weight: 500;
 }
 
 /* ── Hizmet tipi renk varyantları ── */
@@ -1201,9 +1208,8 @@ html[data-theme="light"] .tip-diger          { color: #475569; }
   background: var(--accent-dim);
   border: 1px solid var(--accent-dim2);
   color: var(--accent);
-  font-size: 10px;
-  padding: 2px 7px;
-  border-radius: 5px;
+  /* font/padding .tip-badge'den devralınıyor — burada override yok */
+  border-radius: 6px;
   font-weight: 600;
 }
 .badge-abonelik-tekrar {
