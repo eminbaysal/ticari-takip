@@ -98,14 +98,15 @@
         <input type="date" id="hizmetTarih" class="modal-input" />
       </div>
       <div>
-        <label>Fiyat (opsiyonel)</label>
+        <label id="fiyatLabel">Fiyat (opsiyonel)</label>
         <div style="display:flex;gap:8px;">
           <select id="hizmetParaBirimi" class="modal-input modal-select" style="width:90px;flex-shrink:0;">
             <option value="TRY">₺ TL</option>
             <option value="USD">$ USD</option>
           </select>
-          <input type="number" id="hizmetFiyat" class="modal-input" placeholder="0.00" step="0.01" min="0" style="flex:1;" />
+          <input type="number" id="hizmetFiyat" class="modal-input" placeholder="0.00" step="0.01" min="0" style="flex:1;" oninput="hesaplaUrunToplam()" />
         </div>
+        <div id="urunCarpimOnizleme" style="display:none;margin-top:6px;padding:7px 10px;background:var(--surface2);border-radius:7px;font-size:13px;color:var(--text-soft);"></div>
       </div>
     </div>
     <!-- Ürün Tedariği alanları -->
@@ -117,7 +118,7 @@
         </div>
         <div>
           <label>Adet *</label>
-          <input type="number" id="urunAdet" class="modal-input" placeholder="1" min="1" step="1" />
+          <input type="number" id="urunAdet" class="modal-input" placeholder="1" min="1" step="1" oninput="hesaplaUrunToplam()" />
         </div>
       </div>
     </div>
@@ -276,9 +277,11 @@
   }
 
   function onTipChange() {
-    const tip = document.getElementById('hizmetTip').value;
-    const ozel = document.getElementById('hizmetTipOzel');
+    const tip    = document.getElementById('hizmetTip').value;
+    const ozel   = document.getElementById('hizmetTipOzel');
     const urunSec = document.getElementById('urunSection');
+    const isUrun  = tip === 'urun-tedariki';
+
     if (tip === 'diger') {
       ozel.style.display = 'block';
       ozel.focus();
@@ -286,12 +289,37 @@
       ozel.style.display = 'none';
       ozel.value = '';
     }
-    if (tip === 'urun-tedariki') {
+
+    if (isUrun) {
       urunSec.style.display = 'block';
+      document.getElementById('fiyatLabel').textContent = 'Birim Fiyat (opsiyonel)';
+      hesaplaUrunToplam();
     } else {
       urunSec.style.display = 'none';
-      document.getElementById('urunAdi').value = '';
-      document.getElementById('urunAdet').value = '';
+      document.getElementById('urunAdi').value   = '';
+      document.getElementById('urunAdet').value  = '';
+      document.getElementById('fiyatLabel').textContent = 'Fiyat (opsiyonel)';
+      document.getElementById('urunCarpimOnizleme').style.display = 'none';
+    }
+  }
+
+  function hesaplaUrunToplam() {
+    const tip   = document.getElementById('hizmetTip').value;
+    const onizEl = document.getElementById('urunCarpimOnizleme');
+    if (tip !== 'urun-tedariki' || editHizmetId) { onizEl.style.display = 'none'; return; }
+
+    const birim = parseFloat(document.getElementById('hizmetFiyat').value);
+    const adet  = parseFloat(document.getElementById('urunAdet').value);
+    const pb    = document.getElementById('hizmetParaBirimi').value;
+    const sym   = pb === 'USD' ? '$' : '₺';
+    const fmt   = v => new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
+
+    if (birim > 0 && adet > 0) {
+      const toplam = birim * adet;
+      onizEl.style.display = 'block';
+      onizEl.innerHTML = `${adet} adet × ${sym}${fmt(birim)} = <strong style="color:var(--accent);">${sym}${fmt(toplam)}</strong>`;
+    } else {
+      onizEl.style.display = 'none';
     }
   }
   const durumLabels = {
@@ -443,6 +471,8 @@
     document.getElementById('hizmetParaBirimi').value = 'TRY';
     document.getElementById('hizmetAciklama').value = '';
     document.getElementById('hizmetError').textContent = '';
+    document.getElementById('fiyatLabel').textContent = 'Fiyat (opsiyonel)';
+    document.getElementById('urunCarpimOnizleme').style.display = 'none';
     document.getElementById('hizmetModal').classList.add('open');
   }
 
@@ -554,10 +584,19 @@
     if (tipSec === 'urun-tedariki' && !urunAdi) { errEl.textContent = 'Ürün adı gerekli.'; return; }
     errEl.textContent = '';
     const paraBirimi = document.getElementById('hizmetParaBirimi').value;
+
+    // Ürün tedariğinde yeni kayıtta birim fiyat × adet = toplam fiyat
+    let hesaplananFiyat = fiyat;
+    if (tipSec === 'urun-tedariki' && !editHizmetId) {
+      const birim = parseFloat(fiyat);
+      const adet2 = parseFloat(urunAdet);
+      if (birim > 0 && adet2 > 0) hesaplananFiyat = String(Math.round(birim * adet2 * 100) / 100);
+    }
+
     const url = editHizmetId ? `/api/hizmetler/${editHizmetId}` : '/api/hizmetler';
     const method = editHizmetId ? 'PUT' : 'POST';
     const faturaTarihi = document.getElementById('faturaTarihi').value;
-    const body = { tip, durum, tarih, fiyat, paraBirimi, aciklama, urunAdi, adet: urunAdet, faturaTarihi };
+    const body = { tip, durum, tarih, fiyat: hesaplananFiyat, paraBirimi, aciklama, urunAdi, adet: urunAdet, faturaTarihi };
     if (!editHizmetId) body.firma = firmaId;
     const res = await fetch(url, {
       method, headers: { 'Content-Type': 'application/json' },
