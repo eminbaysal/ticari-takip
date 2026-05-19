@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ana Sayfa — Ödeme Takip</title>
-<link rel="stylesheet" href="/style.css?v=3">
+<link rel="stylesheet" href="/style.css?v=4">
 </head>
 <body>
 <div class="grid-bg"></div>
@@ -24,6 +24,9 @@
     <button class="nav-icon-btn" id="themeToggle" type="button" data-tip="Temayı Değiştir">
       <svg id="iconSun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
       <svg id="iconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+    <button class="nav-icon-btn" id="sesliKayitBtn" onclick="acSesMod()" title="Sesli Hizmet Kayıt">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
     </button>
     <button class="nav-icon-btn logout" onclick="logout()" data-tip="Çıkış Yap">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -280,6 +283,166 @@
     <div class="modal-footer">
       <button class="btn-ghost" onclick="closeDeleteModal()">İptal</button>
       <button class="btn-danger" onclick="confirmDelete()">Sil</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Sesli Kayıt Modal ── -->
+<div class="modal-overlay" id="sesModal">
+  <div class="modal modal-wide" style="max-width:540px;">
+    <div class="modal-header">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div id="sesMikrofonIkon" style="width:34px;height:34px;border-radius:50%;background:var(--accent-dim);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);display:flex;align-items:center;justify-content:center;color:var(--accent);flex-shrink:0;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </div>
+        <div>
+          <h3 style="font-size:15px;font-weight:700;">Sesli Hizmet Kayıt</h3>
+          <div id="sesDurumYazi" style="font-size:11px;color:var(--text-muted);margin-top:1px;">Mikrofon butonuna basarak konuşmaya başlayın</div>
+        </div>
+      </div>
+      <button class="modal-close" onclick="kapatSesMod()">✕</button>
+    </div>
+
+    <!-- Adım 1: Kayıt -->
+    <div id="sesAdim1">
+      <!-- Kayıt butonu + dalga animasyonu -->
+      <div style="display:flex;flex-direction:column;align-items:center;gap:18px;padding:24px 0 8px;">
+        <button id="sesMikBtn" onclick="toggleSesKayit()" class="ses-mik-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:28px;height:28px;"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </button>
+        <div class="ses-dalga" id="sesDalga" style="display:none;">
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+      </div>
+
+      <!-- Transkript kutusu -->
+      <div style="margin-top:6px;">
+        <label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);">Algılanan Metin</label>
+        <div id="sesTranskrip" class="ses-transkript">Henüz konuşma algılanmadı...</div>
+      </div>
+
+      <!-- Örnek cümleler -->
+      <div style="margin-top:14px;">
+        <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:6px;">Örnek Söyleyişler</div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <div class="ses-ornek" onclick="sesMetniniKullan(this.dataset.text)"
+               data-text="Gebze Belediyesine 10 adet modem verildi birim fiyatı 1000 TL">
+            <span class="ses-ornek-icon">▶</span> "Gebze Belediyesine 10 adet modem verildi birim fiyatı 1000 TL"
+          </div>
+          <div class="ses-ornek" onclick="sesMetniniKullan(this.dataset.text)"
+               data-text="SPN Clinic internet bağlantısı yapıldı aylık fiyat 10000 TL aktivasyon ücreti 5000 TL">
+            <span class="ses-ornek-icon">▶</span> "SPN Clinic internet bağlantısı yapıldı aylık fiyat 10000 TL aktivasyon ücreti 5000 TL"
+          </div>
+          <div class="ses-ornek" onclick="sesMetniniKullan(this.dataset.text)"
+               data-text="ABC firmasına danışmanlık hizmeti verildi fiyat 25000 TL">
+            <span class="ses-ornek-icon">▶</span> "ABC firmasına danışmanlık hizmeti verildi fiyat 25000 TL"
+          </div>
+          <div class="ses-ornek" onclick="sesMetniniKullan(this.dataset.text)"
+               data-text="XYZ şirketine kamera kurulumu yapıldı 16 kamera takıldı toplam 45000 TL">
+            <span class="ses-ornek-icon">▶</span> "XYZ şirketine kamera kurulumu yapıldı 16 kamera takıldı toplam 45000 TL"
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="justify-content:space-between;">
+        <button class="btn-ghost" onclick="kapatSesMod()">İptal</button>
+        <button class="btn-primary" id="sesAnalizBtn" onclick="sesMetniniAnalizEt()" disabled style="gap:8px;display:flex;align-items:center;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Analiz Et
+        </button>
+      </div>
+    </div>
+
+    <!-- Adım 2: Önizleme / Düzenleme -->
+    <div id="sesAdim2" style="display:none;">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:14px;padding:8px 12px;background:var(--accent-dim2);border-radius:8px;border:1px solid var(--border);" id="sesOrijinalMetin"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;">
+        <!-- Firma -->
+        <div style="grid-column:1/-1;" class="panel-hizli-field">
+          <label class="panel-hizli-label">Firma *</label>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <input type="text" class="modal-input" id="sesFirmaAd" placeholder="Firma adı" style="flex:1;" />
+            <div id="sesFirmaYeniRozet" style="display:none;padding:3px 8px;background:var(--success-dim);border:1px solid color-mix(in srgb,var(--success) 30%,transparent);border-radius:6px;font-size:10px;font-weight:700;color:var(--success);white-space:nowrap;">+ YENİ</div>
+          </div>
+          <input type="hidden" id="sesFirmaId" />
+        </div>
+
+        <!-- Hizmet Tipi -->
+        <div class="panel-hizli-field">
+          <label class="panel-hizli-label">Hizmet Tipi</label>
+          <select class="modal-input modal-select" id="sesTip">
+            <option value="danismanlik">Danışmanlık</option>
+            <option value="teknik-destek">Teknik Destek</option>
+            <option value="urun-tedariki">Ürün Tedariği</option>
+            <option value="cihaz-kurulumu">Cihaz Kurulumu</option>
+            <option value="devreye-alma">Devreye Alma</option>
+            <option value="abonelik">Abonelik</option>
+            <option value="diger">Diğer</option>
+          </select>
+        </div>
+
+        <!-- Para Birimi -->
+        <div class="panel-hizli-field">
+          <label class="panel-hizli-label">Para Birimi</label>
+          <select class="modal-input modal-select" id="sesPB">
+            <option value="TRY">₺ TRY</option>
+            <option value="USD">$ USD</option>
+          </select>
+        </div>
+
+        <!-- Açıklama -->
+        <div style="grid-column:1/-1;" class="panel-hizli-field">
+          <label class="panel-hizli-label">Açıklama</label>
+          <input type="text" class="modal-input" id="sesAciklama" placeholder="Hizmet açıklaması" />
+        </div>
+
+        <!-- Ürün Adı -->
+        <div class="panel-hizli-field">
+          <label class="panel-hizli-label">Ürün Adı</label>
+          <input type="text" class="modal-input" id="sesUrunAdi" placeholder="(opsiyonel)" />
+        </div>
+
+        <!-- Adet -->
+        <div class="panel-hizli-field">
+          <label class="panel-hizli-label">Adet</label>
+          <input type="number" class="modal-input" id="sesAdet" placeholder="—" min="1" step="1" />
+        </div>
+
+        <!-- Fiyat -->
+        <div class="panel-hizli-field">
+          <label class="panel-hizli-label">Fiyat</label>
+          <input type="number" class="modal-input" id="sesFiyat" placeholder="0.00" min="0" step="0.01" />
+        </div>
+
+        <!-- Aylık Ücret -->
+        <div class="panel-hizli-field">
+          <label class="panel-hizli-label">Aylık Ücret</label>
+          <input type="number" class="modal-input" id="sesAylik" placeholder="—" min="0" step="0.01" />
+        </div>
+
+        <!-- Aktivasyon -->
+        <div class="panel-hizli-field">
+          <label class="panel-hizli-label">Aktivasyon Ücreti</label>
+          <input type="number" class="modal-input" id="sesAktivasyon" placeholder="—" min="0" step="0.01" />
+        </div>
+
+        <!-- Yıllık -->
+        <div class="panel-hizli-field">
+          <label class="panel-hizli-label">Yıllık Ücret</label>
+          <input type="number" class="modal-input" id="sesYillik" placeholder="—" min="0" step="0.01" />
+        </div>
+      </div>
+
+      <div id="sesKayitErr" style="font-size:12px;color:var(--danger);margin-top:10px;display:none;"></div>
+
+      <div class="modal-footer" style="justify-content:space-between;">
+        <button class="btn-ghost" onclick="sesGeriAd1()">← Geri</button>
+        <button class="btn-primary" id="sesKaydetBtn" onclick="sesSonKaydet()" style="display:flex;align-items:center;gap:8px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Kaydet
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -1079,6 +1242,278 @@
   window.addEventListener('pageshow', e => {
     if (e.persisted) { loadFirmalar(); loadOzet(); }
   });
-</script>
+
+  /* ══════════════════════════════════════════
+     SESLİ KAYIT MODÜLÜ
+  ══════════════════════════════════════════ */
+  let sesRec         = null;  // SpeechRecognition örneği
+  let sesAktif       = false;
+  let sesSonMetin    = '';
+  let sesAralikId    = null;  // otomatik durdurma timer
+  let sesBitisMesaji = '';
+
+  // Web Speech API desteklenip desteklenmediğini kontrol et
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  function acSesMod() {
+    document.getElementById('sesModal').classList.add('open');
+    sesSonMetin = '';
+    sesBitisMesaji = '';
+    _sesAdim1Sifirla();
+  }
+
+  function kapatSesMod() {
+    sesKayitDur();
+    document.getElementById('sesModal').classList.remove('open');
+    document.getElementById('sesAdim2').style.display = 'none';
+    document.getElementById('sesAdim1').style.display = 'block';
+  }
+
+  function _sesAdim1Sifirla() {
+    document.getElementById('sesAdim1').style.display = 'block';
+    document.getElementById('sesAdim2').style.display = 'none';
+    _sesUIDur();
+    const t = document.getElementById('sesTranskrip');
+    t.textContent = sesSonMetin || 'Henüz konuşma algılanmadı...';
+    t.classList.toggle('ses-transkript-dolu', !!sesSonMetin);
+    document.getElementById('sesAnalizBtn').disabled = !sesSonMetin;
+  }
+
+  function sesGeriAd1() {
+    document.getElementById('sesAdim2').style.display = 'none';
+    document.getElementById('sesAdim1').style.display = 'block';
+  }
+
+  // ── Kayıt Başlat / Durdur ──
+  function toggleSesKayit() {
+    if (sesAktif) { sesKayitDur(); return; }
+    if (!SpeechRecognition) {
+      _sesDurum('⚠ Tarayıcınız Web Speech API desteklemiyor. Chrome önerilir.', 'warn');
+      return;
+    }
+    sesKayitBasla();
+  }
+
+  function sesKayitBasla() {
+    sesRec = new SpeechRecognition();
+    sesRec.lang            = 'tr-TR';
+    sesRec.interimResults  = true;
+    sesRec.maxAlternatives = 1;
+    sesRec.continuous      = true;
+
+    sesRec.onstart = () => {
+      sesAktif = true;
+      _sesUIAktif();
+      _sesDurum('🔴 Kayıt yapılıyor... Konuşun', 'kayit');
+    };
+
+    sesRec.onresult = (e) => {
+      // Otomatik durdurma: 2.5sn sessizlik
+      clearTimeout(sesAralikId);
+      sesAralikId = setTimeout(() => sesKayitDur(), 2500);
+
+      let gecici = '', kalici = sesSonMetin;
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const segment = e.results[i][0].transcript;
+        if (e.results[i].isFinal) kalici += (kalici ? ' ' : '') + segment;
+        else gecici = segment;
+      }
+      sesSonMetin = kalici;
+      const gorunen = (kalici + (gecici ? ' ' + gecici : '')).trim();
+      const el = document.getElementById('sesTranskrip');
+      el.textContent = gorunen || 'Henüz konuşma algılanmadı...';
+      el.classList.toggle('ses-transkript-dolu', !!gorunen);
+      document.getElementById('sesAnalizBtn').disabled = !gorunen;
+    };
+
+    sesRec.onerror = (e) => {
+      if (e.error === 'no-speech') return; // sessizlik normal
+      if (e.error === 'aborted')  return;
+      _sesDurum('Hata: ' + e.error, 'hata');
+      sesAktif = false;
+      _sesUIDur();
+    };
+
+    sesRec.onend = () => {
+      sesAktif = false;
+      _sesUIDur();
+      if (sesSonMetin) {
+        _sesDurum('✓ Kayıt tamamlandı. "Analiz Et" butonuna basın.', 'tamam');
+        document.getElementById('sesAnalizBtn').disabled = false;
+      } else {
+        _sesDurum('Mikrofon butonuna basarak konuşmaya başlayın', '');
+      }
+    };
+
+    try { sesRec.start(); } catch (e) { _sesDurum('Mikrofon başlatılamadı: ' + e.message, 'hata'); }
+  }
+
+  function sesKayitDur() {
+    clearTimeout(sesAralikId);
+    if (sesRec) { try { sesRec.stop(); } catch {} sesRec = null; }
+    sesAktif = false;
+    _sesUIDur();
+  }
+
+  // ── UI Durum Güncellemeleri ──
+  function _sesUIAktif() {
+    const btn = document.getElementById('sesMikBtn');
+    btn.classList.add('ses-mik-btn-aktif');
+    btn.title = 'Kaydı Durdur';
+    document.getElementById('sesDalga').style.display = 'flex';
+    document.getElementById('sesMikrofonIkon').style.background = 'rgba(239,68,68,.15)';
+    document.getElementById('sesMikrofonIkon').style.borderColor = 'rgba(239,68,68,.4)';
+    document.getElementById('sesMikrofonIkon').style.color = '#ef4444';
+  }
+
+  function _sesUIDur() {
+    const btn = document.getElementById('sesMikBtn');
+    btn.classList.remove('ses-mik-btn-aktif');
+    btn.title = 'Kaydı Başlat';
+    document.getElementById('sesDalga').style.display = 'none';
+    document.getElementById('sesMikrofonIkon').style.background = '';
+    document.getElementById('sesMikrofonIkon').style.borderColor = '';
+    document.getElementById('sesMikrofonIkon').style.color = '';
+  }
+
+  function _sesDurum(msg, tip) {
+    const el = document.getElementById('sesDurumYazi');
+    el.textContent = msg;
+    el.style.color = tip === 'hata'  ? 'var(--danger)'  :
+                     tip === 'tamam' ? 'var(--success)' :
+                     tip === 'kayit' ? '#ef4444'        :
+                     tip === 'warn'  ? 'var(--warn)'    : 'var(--text-muted)';
+  }
+
+  // ── Örnek metin tıklandığında ──
+  function sesMetniniKullan(text) {
+    sesSonMetin = text;
+    const el = document.getElementById('sesTranskrip');
+    el.textContent = text;
+    el.classList.add('ses-transkript-dolu');
+    document.getElementById('sesAnalizBtn').disabled = false;
+    _sesDurum('Metin yüklendi. "Analiz Et" butonuna basın.', 'tamam');
+  }
+
+  // ── Analiz Et → Backend'e gönder, Adım 2'ye geç ──
+  async function sesMetniniAnalizEt() {
+    const metin = (document.getElementById('sesTranskrip').textContent || sesSonMetin).trim();
+    if (!metin || metin === 'Henüz konuşma algılanmadı...') {
+      _sesDurum('Önce bir metin girin veya konuşun!', 'warn'); return;
+    }
+
+    const btn = document.getElementById('sesAnalizBtn');
+    btn.disabled = true;
+    btn.textContent = 'Analiz ediliyor...';
+
+    try {
+      const res  = await fetch('/api/speech/parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: metin }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Sunucu hatası');
+      _sesOnizlemeDoldur(data);
+    } catch (e) {
+      _sesDurum('Hata: ' + e.message, 'hata');
+      btn.disabled = false;
+      btn.textContent = 'Analiz Et';
+    }
+  }
+
+  function _sesOnizlemeDoldur(data) {
+    const p = data.parsed;
+
+    // Orijinal metin
+    document.getElementById('sesOrijinalMetin').textContent = '💬 ' + (data.originalText || '');
+
+    // Firma
+    document.getElementById('sesFirmaId').value  = data.firma ? data.firma._id : '';
+    document.getElementById('sesFirmaAd').value  = data.firma ? data.firma.ad : (p.firmaAd || '');
+    document.getElementById('sesFirmaYeniRozet').style.display = data.firmaYeni ? 'block' : 'none';
+
+    // Diğer alanlar
+    _sesSet('sesTip',       p.tip          || 'diger');
+    _sesSet('sesAciklama',  p.aciklama     || '');
+    _sesSet('sesUrunAdi',   p.urunAdi      || '');
+    _sesSet('sesAdet',      p.adet         || '');
+    _sesSet('sesFiyat',     p.fiyat        || '');
+    _sesSet('sesAylik',     p.aylikUcret   || '');
+    _sesSet('sesAktivasyon',p.aktivasyonUcreti || '');
+    _sesSet('sesYillik',    p.yillikUcret  || '');
+    _sesSet('sesPB',        p.paraBirimi   || 'TRY');
+
+    document.getElementById('sesKayitErr').style.display = 'none';
+    document.getElementById('sesAdim1').style.display = 'none';
+    document.getElementById('sesAdim2').style.display = 'block';
+  }
+
+  function _sesSet(id, val) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = val === null || val === undefined ? '' : val;
+  }
+
+  // ── Kaydet ──
+  async function sesSonKaydet() {
+    const firmaAd = document.getElementById('sesFirmaAd').value.trim();
+    const firmaId = document.getElementById('sesFirmaId').value.trim();
+    const fiyat   = parseFloat(document.getElementById('sesFiyat').value) || null;
+    const aylik   = parseFloat(document.getElementById('sesAylik').value) || null;
+
+    if (!firmaAd && !firmaId) {
+      const err = document.getElementById('sesKayitErr');
+      err.textContent = 'Firma adı gerekli!';
+      err.style.display = 'block'; return;
+    }
+
+    const btn = document.getElementById('sesKaydetBtn');
+    btn.disabled = true;
+    btn.textContent = 'Kaydediliyor...';
+
+    try {
+      const payload = {
+        firmaId:          firmaId || null,
+        firmaAd:          firmaAd || null,
+        tip:              document.getElementById('sesTip').value,
+        aciklama:         document.getElementById('sesAciklama').value.trim(),
+        urunAdi:          document.getElementById('sesUrunAdi').value.trim(),
+        adet:             parseInt(document.getElementById('sesAdet').value) || null,
+        fiyat,
+        paraBirimi:       document.getElementById('sesPB').value,
+        aylikUcret:       aylik,
+        aktivasyonUcreti: parseFloat(document.getElementById('sesAktivasyon').value) || null,
+        yillikUcret:      parseFloat(document.getElementById('sesYillik').value) || null,
+        faturaKesildi:    false,
+        tahsilEdildi:     false,
+      };
+
+      const res  = await fetch('/api/speech/kaydet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Kayıt hatası');
+
+      // Başarı
+      kapatSesMod();
+      await Promise.all([loadFirmalar(), loadOzet()]);
+
+      // Kaydedilen firmayı seç
+      if (data.firmaId) {
+        const f = firmaMap[data.firmaId] || tumFirmalar.find(x => x._id == data.firmaId);
+        if (f) await selectFirma(data.firmaId);
+      }
+    } catch (e) {
+      const err = document.getElementById('sesKayitErr');
+      err.textContent = 'Hata: ' + e.message;
+      err.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Kaydet';
+    }
+  }
+
 </body>
 </html>

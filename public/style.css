@@ -1675,6 +1675,111 @@ html[data-theme="light"] .modal {
   flex-shrink: 0;
 }
 
+/* ══════════════════════════════════
+   SESLİ KAYIT MODALI
+══════════════════════════════════ */
+
+/* Mikrofon butonu (büyük, yuvarlak) */
+.ses-mik-btn {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 2px solid var(--border-light);
+  background: var(--surface2);
+  color: var(--text-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.15s;
+  flex-shrink: 0;
+}
+.ses-mik-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+  transform: scale(1.06);
+}
+.ses-mik-btn-aktif {
+  background: rgba(239,68,68,.12) !important;
+  border-color: rgba(239,68,68,.55) !important;
+  color: #ef4444 !important;
+  box-shadow: 0 0 0 6px rgba(239,68,68,.08), 0 0 20px rgba(239,68,68,.2) !important;
+  animation: ses-nabiz 1.6s ease-in-out infinite;
+}
+@keyframes ses-nabiz {
+  0%, 100% { box-shadow: 0 0 0 6px rgba(239,68,68,.08), 0 0 20px rgba(239,68,68,.2); }
+  50%       { box-shadow: 0 0 0 10px rgba(239,68,68,.04), 0 0 32px rgba(239,68,68,.3); }
+}
+
+/* Dalga animasyonu */
+.ses-dalga {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 24px;
+}
+.ses-dalga span {
+  display: block;
+  width: 3px;
+  border-radius: 2px;
+  background: #ef4444;
+  animation: ses-dalga-anim 0.9s ease-in-out infinite;
+}
+.ses-dalga span:nth-child(1) { height: 8px;  animation-delay: 0s; }
+.ses-dalga span:nth-child(2) { height: 16px; animation-delay: 0.1s; }
+.ses-dalga span:nth-child(3) { height: 22px; animation-delay: 0.2s; }
+.ses-dalga span:nth-child(4) { height: 16px; animation-delay: 0.3s; }
+.ses-dalga span:nth-child(5) { height: 8px;  animation-delay: 0.4s; }
+@keyframes ses-dalga-anim {
+  0%, 100% { transform: scaleY(0.4); opacity: 0.5; }
+  50%       { transform: scaleY(1);   opacity: 1; }
+}
+
+/* Transkript kutusu */
+.ses-transkript {
+  min-height: 64px;
+  padding: 10px 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-top: 6px;
+  transition: border-color 0.2s;
+  word-break: break-word;
+}
+.ses-transkript-dolu {
+  color: var(--text);
+  border-color: var(--accent);
+  background: var(--accent-dim2);
+}
+
+/* Örnek cümleler */
+.ses-ornek {
+  padding: 7px 12px;
+  font-size: 12px;
+  color: var(--text-soft);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  line-height: 1.5;
+}
+.ses-ornek:hover {
+  background: var(--accent-dim);
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  color: var(--text);
+}
+.ses-ornek-icon {
+  color: var(--accent);
+  font-size: 9px;
+  margin-right: 2px;
+  opacity: 0.7;
+}
+
 /* ── Empty state ── */
 .empty-state {
   color: var(--text-muted);

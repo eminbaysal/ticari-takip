@@ -10,6 +10,7 @@ const authRoutes = require('./routes/auth');
 const firmalarRoutes   = require('./routes/firmalar');
 const hizmetlerRoutes  = require('./routes/hizmetler');
 const aboneliklerRoutes = require('./routes/abonelikler');
+const speechRoutes      = require('./routes/speech');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -68,6 +69,7 @@ app.get('/admin', requireAuth, (req, res) => {
 app.use('/api/firmalar',    requireAuth, firmalarRoutes);
 app.use('/api/hizmetler',   requireAuth, hizmetlerRoutes);
 app.use('/api/abonelikler', requireAuth, aboneliklerRoutes);
+app.use('/api/speech',     requireAuth, speechRoutes);
 
 // 404
 app.use((req, res) => {
