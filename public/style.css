@@ -1712,6 +1712,22 @@ html[data-theme="light"] .modal {
   50%       { box-shadow: 0 0 0 10px rgba(239,68,68,.04), 0 0 32px rgba(239,68,68,.3); }
 }
 
+/* Whisper analiz: spinner durumu */
+.ses-mik-btn-yukleniyor {
+  background: color-mix(in srgb, var(--warn) 12%, var(--surface2)) !important;
+  border-color: color-mix(in srgb, var(--warn) 45%, var(--border)) !important;
+  color: var(--warn) !important;
+  cursor: not-allowed !important;
+  animation: ses-spin-border 1.2s linear infinite;
+}
+@keyframes ses-spin-border {
+  0%   { box-shadow: 0 0 0 3px transparent, 2px 0 0 3px var(--warn); }
+  25%  { box-shadow: 0 0 0 3px transparent, 0 2px 0 3px var(--warn); }
+  50%  { box-shadow: 0 0 0 3px transparent, -2px 0 0 3px var(--warn); }
+  75%  { box-shadow: 0 0 0 3px transparent, 0 -2px 0 3px var(--warn); }
+  100% { box-shadow: 0 0 0 3px transparent, 2px 0 0 3px var(--warn); }
+}
+
 /* Dalga animasyonu */
 .ses-dalga {
   display: flex;

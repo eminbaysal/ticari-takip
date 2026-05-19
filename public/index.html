@@ -297,7 +297,7 @@
         </div>
         <div>
           <h3 style="font-size:15px;font-weight:700;">Sesli Hizmet Kayıt</h3>
-          <div id="sesDurumYazi" style="font-size:11px;color:var(--text-muted);margin-top:1px;">Mikrofon butonuna basarak konuşmaya başlayın</div>
+          <div id="sesDurumYazi" style="font-size:11px;color:var(--text-muted);margin-top:1px;">Butona basın → konuşun → durdurun → Whisper metne çevirir</div>
         </div>
       </div>
       <button class="modal-close" onclick="kapatSesMod()">✕</button>
@@ -1244,26 +1244,24 @@
   });
 
   /* ══════════════════════════════════════════
-     SESLİ KAYIT MODÜLÜ
+     SESLİ KAYIT MODÜLÜ — MediaRecorder + Whisper
   ══════════════════════════════════════════ */
-  let sesRec         = null;  // SpeechRecognition örneği
-  let sesAktif       = false;
-  let sesSonMetin    = '';
-  let sesAralikId    = null;  // otomatik durdurma timer
-  let sesBitisMesaji = '';
-
-  // Web Speech API desteklenip desteklenmediğini kontrol et
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let sesMediaRec   = null;   // MediaRecorder örneği
+  let sesStream     = null;   // getUserMedia stream
+  let sesChunks     = [];     // kayıt parçaları
+  let sesAktif      = false;
+  let sesSonMetin   = '';
+  let sesSureSn     = 0;      // geçen süre sayacı
+  let sesSureTimer  = null;
 
   function acSesMod() {
     document.getElementById('sesModal').classList.add('open');
     sesSonMetin = '';
-    sesBitisMesaji = '';
     _sesAdim1Sifirla();
   }
 
   function kapatSesMod() {
-    sesKayitDur();
+    _sesKayitIptal();
     document.getElementById('sesModal').classList.remove('open');
     document.getElementById('sesAdim2').style.display = 'none';
     document.getElementById('sesAdim1').style.display = 'block';
@@ -1284,122 +1282,169 @@
     document.getElementById('sesAdim1').style.display = 'block';
   }
 
-  // ── Kayıt Başlat / Durdur ──
-  function toggleSesKayit() {
+  // ── Kayıt Başlat / Durdur ──────────────────────────────────
+  async function toggleSesKayit() {
     if (sesAktif) { sesKayitDur(); return; }
-    if (!SpeechRecognition) {
-      _sesDurum('⚠ Tarayıcınız Web Speech API desteklemiyor. Chrome önerilir.', 'warn');
-      return;
-    }
-    sesKayitBasla();
+    await sesKayitBasla();
   }
 
-  function sesKayitBasla() {
-    sesRec = new SpeechRecognition();
-    sesRec.lang            = 'tr-TR';
-    sesRec.interimResults  = true;
-    sesRec.maxAlternatives = 1;
-    sesRec.continuous      = true;
+  async function sesKayitBasla() {
+    // Mikrofon izni iste
+    try {
+      sesStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    } catch (err) {
+      _sesDurum('⚠ Mikrofon erişimi reddedildi: ' + err.message, 'hata');
+      return;
+    }
 
-    sesRec.onstart = () => {
-      sesAktif = true;
-      _sesUIAktif();
-      _sesDurum('🔴 Kayıt yapılıyor... Konuşun', 'kayit');
+    // Desteklenen format: webm > ogg > mp4
+    const mime = ['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/ogg','audio/mp4']
+      .find(m => MediaRecorder.isTypeSupported(m)) || '';
+
+    sesChunks  = [];
+    sesMediaRec = new MediaRecorder(sesStream, mime ? { mimeType: mime } : {});
+
+    sesMediaRec.ondataavailable = (e) => { if (e.data.size > 0) sesChunks.push(e.data); };
+
+    sesMediaRec.onstop = async () => {
+      // Stream'i kapat
+      sesStream.getTracks().forEach(t => t.stop());
+      sesStream = null;
+
+      const blob = new Blob(sesChunks, { type: sesMediaRec.mimeType || 'audio/webm' });
+      await _sesTranskribeEt(blob);
     };
 
-    sesRec.onresult = (e) => {
-      // Otomatik durdurma: 2.5sn sessizlik
-      clearTimeout(sesAralikId);
-      sesAralikId = setTimeout(() => sesKayitDur(), 2500);
+    sesMediaRec.start(250); // 250ms'de bir chunk al
+    sesAktif = true;
+    _sesUIAktif();
+    _sesDurum('🔴 Kayıt yapılıyor... Konuşun', 'kayit');
 
-      let gecici = '', kalici = sesSonMetin;
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const segment = e.results[i][0].transcript;
-        if (e.results[i].isFinal) kalici += (kalici ? ' ' : '') + segment;
-        else gecici = segment;
-      }
-      sesSonMetin = kalici;
-      const gorunen = (kalici + (gecici ? ' ' + gecici : '')).trim();
-      const el = document.getElementById('sesTranskrip');
-      el.textContent = gorunen || 'Henüz konuşma algılanmadı...';
-      el.classList.toggle('ses-transkript-dolu', !!gorunen);
-      document.getElementById('sesAnalizBtn').disabled = !gorunen;
-    };
-
-    sesRec.onerror = (e) => {
-      if (e.error === 'no-speech') return; // sessizlik normal
-      if (e.error === 'aborted')  return;
-      _sesDurum('Hata: ' + e.error, 'hata');
-      sesAktif = false;
-      _sesUIDur();
-    };
-
-    sesRec.onend = () => {
-      sesAktif = false;
-      _sesUIDur();
-      if (sesSonMetin) {
-        _sesDurum('✓ Kayıt tamamlandı. "Analiz Et" butonuna basın.', 'tamam');
-        document.getElementById('sesAnalizBtn').disabled = false;
-      } else {
-        _sesDurum('Mikrofon butonuna basarak konuşmaya başlayın', '');
-      }
-    };
-
-    try { sesRec.start(); } catch (e) { _sesDurum('Mikrofon başlatılamadı: ' + e.message, 'hata'); }
+    // Süre sayacı
+    sesSureSn = 0;
+    sesSureTimer = setInterval(() => {
+      sesSureSn++;
+      const d = document.getElementById('sesDurumYazi');
+      if (d) d.textContent = '🔴 Kayıt yapılıyor... ' + _sureStr(sesSureSn);
+    }, 1000);
   }
 
   function sesKayitDur() {
-    clearTimeout(sesAralikId);
-    if (sesRec) { try { sesRec.stop(); } catch {} sesRec = null; }
+    clearInterval(sesSureTimer);
+    if (sesMediaRec && sesMediaRec.state !== 'inactive') sesMediaRec.stop();
     sesAktif = false;
-    _sesUIDur();
+    _sesUIYukleniyor();
+    _sesDurum('⏳ Whisper analiz ediyor...', 'bekle');
   }
 
-  // ── UI Durum Güncellemeleri ──
+  function _sesKayitIptal() {
+    clearInterval(sesSureTimer);
+    if (sesMediaRec && sesMediaRec.state !== 'inactive') {
+      sesMediaRec.ondataavailable = null;
+      sesMediaRec.onstop = null;
+      sesMediaRec.stop();
+    }
+    if (sesStream) { sesStream.getTracks().forEach(t => t.stop()); sesStream = null; }
+    sesMediaRec = null;
+    sesChunks = [];
+    sesAktif = false;
+  }
+
+  // ── Whisper Transkripsiyon ─────────────────────────────────
+  async function _sesTranskribeEt(blob) {
+    try {
+      const ext      = blob.type.includes('ogg') ? 'ogg' : blob.type.includes('mp4') ? 'mp4' : 'webm';
+      const formData = new FormData();
+      formData.append('audio', blob, `kayit.${ext}`);
+
+      const res = await fetch('/api/speech/transcribe', { method: 'POST', body: formData });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || 'Transkripsiyon başarısız');
+
+      sesSonMetin = (data.text || '').trim();
+
+      const el = document.getElementById('sesTranskrip');
+      el.textContent = sesSonMetin || 'Metin algılanamadı — tekrar deneyin';
+      el.classList.toggle('ses-transkript-dolu', !!sesSonMetin);
+      document.getElementById('sesAnalizBtn').disabled = !sesSonMetin;
+
+      _sesUIDur();
+      _sesDurum(sesSonMetin ? '✓ Transkripsiyon tamamlandı. "Analiz Et" e basın.' : 'Ses algılanamadı, tekrar kayıt alın.', sesSonMetin ? 'tamam' : 'warn');
+
+    } catch (e) {
+      _sesUIDur();
+      _sesDurum('Hata: ' + e.message, 'hata');
+    }
+  }
+
+  // ── UI Durumları ───────────────────────────────────────────
   function _sesUIAktif() {
     const btn = document.getElementById('sesMikBtn');
+    btn.classList.remove('ses-mik-btn-yukleniyor');
     btn.classList.add('ses-mik-btn-aktif');
+    btn.disabled = false;
     btn.title = 'Kaydı Durdur';
     document.getElementById('sesDalga').style.display = 'flex';
-    document.getElementById('sesMikrofonIkon').style.background = 'rgba(239,68,68,.15)';
-    document.getElementById('sesMikrofonIkon').style.borderColor = 'rgba(239,68,68,.4)';
-    document.getElementById('sesMikrofonIkon').style.color = '#ef4444';
+    _sesIkonRenk('rgba(239,68,68,.15)', 'rgba(239,68,68,.4)', '#ef4444');
+  }
+
+  function _sesUIYukleniyor() {
+    const btn = document.getElementById('sesMikBtn');
+    btn.classList.remove('ses-mik-btn-aktif');
+    btn.classList.add('ses-mik-btn-yukleniyor');
+    btn.disabled = true;
+    document.getElementById('sesDalga').style.display = 'none';
+    _sesIkonRenk('rgba(245,185,66,.15)', 'rgba(245,185,66,.4)', 'var(--warn)');
   }
 
   function _sesUIDur() {
     const btn = document.getElementById('sesMikBtn');
-    btn.classList.remove('ses-mik-btn-aktif');
+    btn.classList.remove('ses-mik-btn-aktif', 'ses-mik-btn-yukleniyor');
+    btn.disabled = false;
     btn.title = 'Kaydı Başlat';
     document.getElementById('sesDalga').style.display = 'none';
-    document.getElementById('sesMikrofonIkon').style.background = '';
-    document.getElementById('sesMikrofonIkon').style.borderColor = '';
-    document.getElementById('sesMikrofonIkon').style.color = '';
+    _sesIkonRenk('', '', '');
+  }
+
+  function _sesIkonRenk(bg, border, color) {
+    const el = document.getElementById('sesMikrofonIkon');
+    el.style.background   = bg;
+    el.style.borderColor  = border;
+    el.style.color        = color;
   }
 
   function _sesDurum(msg, tip) {
     const el = document.getElementById('sesDurumYazi');
+    if (!el) return;
     el.textContent = msg;
     el.style.color = tip === 'hata'  ? 'var(--danger)'  :
                      tip === 'tamam' ? 'var(--success)' :
                      tip === 'kayit' ? '#ef4444'        :
+                     tip === 'bekle' ? 'var(--warn)'    :
                      tip === 'warn'  ? 'var(--warn)'    : 'var(--text-muted)';
   }
 
-  // ── Örnek metin tıklandığında ──
+  function _sureStr(sn) {
+    const m = Math.floor(sn / 60), s = sn % 60;
+    return (m > 0 ? m + 'd ' : '') + s + 's';
+  }
+
+  // ── Örnek metin tıklandığında ──────────────────────────────
   function sesMetniniKullan(text) {
     sesSonMetin = text;
     const el = document.getElementById('sesTranskrip');
     el.textContent = text;
     el.classList.add('ses-transkript-dolu');
     document.getElementById('sesAnalizBtn').disabled = false;
-    _sesDurum('Metin yüklendi. "Analiz Et" butonuna basın.', 'tamam');
+    _sesDurum('Metin yüklendi. "Analiz Et" e basın.', 'tamam');
   }
 
-  // ── Analiz Et → Backend'e gönder, Adım 2'ye geç ──
+  // ── Analiz Et → Backend parse → Adım 2 ────────────────────
   async function sesMetniniAnalizEt() {
-    const metin = (document.getElementById('sesTranskrip').textContent || sesSonMetin).trim();
-    if (!metin || metin === 'Henüz konuşma algılanmadı...') {
-      _sesDurum('Önce bir metin girin veya konuşun!', 'warn'); return;
+    const metin = document.getElementById('sesTranskrip').textContent.trim();
+    if (!metin || metin === 'Henüz konuşma algılanmadı...' || metin === 'Metin algılanamadı — tekrar deneyin') {
+      _sesDurum('Önce kayıt alın veya örnek seçin!', 'warn'); return;
     }
 
     const btn = document.getElementById('sesAnalizBtn');
@@ -1418,7 +1463,7 @@
     } catch (e) {
       _sesDurum('Hata: ' + e.message, 'hata');
       btn.disabled = false;
-      btn.textContent = 'Analiz Et';
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Analiz Et';
     }
   }
 
