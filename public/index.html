@@ -103,13 +103,127 @@
       <div id="firmaListesi"></div>
     </div>
 
-    <!-- Sağ: Önizleme -->
+    <!-- Sağ Panel -->
     <div class="split-right" id="onizlemePanel">
-      <div class="onizleme-bos" id="onizlemeBos">
-        <div class="onizleme-bos-ikon">⬅</div>
-        <div>Önizlemek için bir firma seçin</div>
+
+      <!-- Hızlı Hizmet Ekle (sayfa açılışında varsayılan görünüm) -->
+      <div class="panel-hizli-ekle" id="hizliEklePanel" style="display:flex;">
+
+        <!-- Başlık -->
+        <div class="panel-hizli-baslik">
+          <div class="hizli-ekle-icon" style="width:30px;height:30px;flex-shrink:0;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:700;color:var(--text);">Hızlı Hizmet Ekle</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:1px;">Firma seçin veya yeni ekleyin</div>
+          </div>
+          <button class="btn-ghost panel-hizli-geri-btn" id="panelGeriBtn" onclick="panelGoOnizleme()" style="display:none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><polyline points="15 18 9 12 15 6"/></svg>
+            Önizleme
+          </button>
+        </div>
+
+        <!-- Form -->
+        <div class="panel-hizli-form">
+
+          <!-- FİRMA SEÇİMİ -->
+          <div class="panel-hizli-field">
+            <label class="panel-hizli-label">Firma *</label>
+            <!-- Seçili firma kartı (firma seçildiğinde gösterilir) -->
+            <div id="panelFirmaSeciliDiv" style="display:none;align-items:center;gap:8px;padding:8px 10px;background:var(--accent-dim);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);border-radius:8px;">
+              <div id="panelFirmaSeciliLogo" style="flex-shrink:0;"></div>
+              <span id="panelFirmaSeciliAd" style="flex:1;font-weight:600;font-size:13px;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+              <button onclick="temizlePanelFirma()" title="Değiştir"
+                      style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:14px;padding:2px 4px;line-height:1;flex-shrink:0;">✕</button>
+            </div>
+            <!-- Arama input (firma seçilmediğinde gösterilir) -->
+            <div style="position:relative;" id="panelFirmaAramaDiv">
+              <input type="text" class="modal-input" id="panelFirmaInput"
+                     placeholder="Firma adı ara veya yeni ekle..."
+                     autocomplete="off"
+                     oninput="onPanelFirmaInput()"
+                     onkeydown="onPanelFirmaKeyDown(event)"
+                     onblur="setTimeout(kapatPanelFirmaDd,150)" />
+              <div class="firma-dd-list" id="panelFirmaDdList" style="display:none;"></div>
+            </div>
+          </div>
+
+          <!-- HİZMET TİPİ -->
+          <div class="panel-hizli-field">
+            <label class="panel-hizli-label">Hizmet Tipi</label>
+            <select class="modal-input modal-select" id="panelHizliTip" onchange="onPanelTipChange()">
+              <option value="danismanlik">Danışmanlık</option>
+              <option value="teknik-destek">Teknik Destek</option>
+              <option value="urun-tedariki">Ürün Tedariği</option>
+              <option value="cihaz-kurulumu">Cihaz Kurulumu</option>
+              <option value="devreye-alma">Devreye Alma</option>
+              <option value="diger">Diğer</option>
+            </select>
+          </div>
+
+          <!-- AÇIKLAMA -->
+          <div class="panel-hizli-field">
+            <label class="panel-hizli-label">Açıklama <span id="panelAciklamaZorunlu" style="color:var(--danger);">*</span></label>
+            <input type="text" class="modal-input" id="panelHizliAciklama"
+                   placeholder="Açıklama girin"
+                   onkeydown="if(event.key==='Enter') panelHizliEkle()" />
+          </div>
+
+          <!-- ÜRÜN TEDARİĞİ (koşullu) -->
+          <div class="panel-hizli-field" id="panelUrunSection" style="display:none;">
+            <label class="panel-hizli-label">Ürün Bilgileri</label>
+            <div style="display:grid;grid-template-columns:1fr 90px;gap:8px;">
+              <input type="text" class="modal-input" id="panelUrunAdi" placeholder="Ürün adı *" />
+              <input type="number" class="modal-input" id="panelUrunAdet" placeholder="Adet" min="1" step="1" oninput="hesaplaPanelFiyat()" />
+            </div>
+            <div id="panelUrunCarpim" style="display:none;margin-top:5px;padding:5px 8px;background:var(--accent-dim);border-radius:6px;font-size:12px;font-weight:600;color:var(--accent);"></div>
+          </div>
+
+          <!-- FİYAT -->
+          <div class="panel-hizli-field">
+            <label class="panel-hizli-label" id="panelFiyatLabel">Fiyat (opsiyonel)</label>
+            <div style="display:flex;">
+              <select class="modal-input" id="panelHizliPB"
+                      style="width:56px;border-radius:8px 0 0 8px;border-right:none;flex-shrink:0;padding:8px 4px;text-align:center;">
+                <option value="TRY">₺</option>
+                <option value="USD">$</option>
+              </select>
+              <input type="number" class="modal-input" id="panelHizliFiyat" placeholder="0.00"
+                     step="0.01" min="0" style="border-radius:0 8px 8px 0;flex:1;"
+                     oninput="hesaplaPanelFiyat()"
+                     onkeydown="if(event.key==='Enter') panelHizliEkle()" />
+            </div>
+          </div>
+
+          <!-- DURUM -->
+          <div class="panel-hizli-field">
+            <label class="panel-hizli-label">Durum</label>
+            <div style="display:flex;gap:8px;">
+              <button class="panel-flag-btn" id="panelFaturaBtn" onclick="togglePanelFatura()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1z"/><path d="M16 8H8M16 12H8M12 16H8"/></svg>
+                Fatura Kesildi
+              </button>
+              <button class="panel-flag-btn" id="panelOdemeBtn" onclick="togglePanelOdeme()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+                Ödeme Alındı
+              </button>
+            </div>
+          </div>
+
+          <!-- Hata -->
+          <div id="panelHizliErr" style="font-size:12px;color:var(--danger);display:none;"></div>
+
+          <!-- Ekle -->
+          <button class="btn-primary" id="panelEkleBtn" onclick="panelHizliEkle()" style="width:100%;margin-top:4px;">
+            + Hizmet Ekle
+          </button>
+        </div>
+
+        <div class="panel-hizli-ipucu">Firmaya tıklayarak önizlemeye geçin · Tekrar tıklayarak hızlı eklemeye dönün</div>
       </div>
 
+      <!-- Önizleme (firmaya tıklayınca açılır) -->
       <div class="onizleme-icerik" id="onizlemeIcerik" style="display:none;" ondblclick="if(seciliFirmaId) window.location.href='/firma/'+seciliFirmaId">
         <div class="onizleme-header">
           <div style="display:flex;align-items:center;gap:10px;">
@@ -127,100 +241,6 @@
         <div class="onizleme-hizmetler" id="onizlemeHizmetler"></div>
       </div>
 
-      <!-- Panel: Hızlı Hizmet Ekle (aynı firmaya 2. tıklamada açılır) -->
-      <div class="panel-hizli-ekle" id="hizliEklePanel" style="display:none;">
-        <!-- Firma başlığı + geri butonu -->
-        <div class="panel-hizli-baslik">
-          <div id="panelFirmaLogo"></div>
-          <div style="min-width:0;flex:1;">
-            <div class="panel-hizli-firma-ad" id="panelFirmaAd"></div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:1px;">Hızlı Hizmet Ekle</div>
-          </div>
-          <button class="btn-ghost panel-hizli-geri-btn" onclick="panelGoOnizleme()" title="Önizlemeye dön">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><polyline points="15 18 9 12 15 6"/></svg>
-            Önizleme
-          </button>
-        </div>
-
-        <!-- Form alanları -->
-        <div class="panel-hizli-form">
-          <!-- Hizmet Tipi -->
-          <div class="panel-hizli-field">
-            <label class="panel-hizli-label">Hizmet Tipi</label>
-            <select class="modal-input modal-select" id="panelHizliTip" onchange="onPanelTipChange()">
-              <option value="danismanlik">Danışmanlık</option>
-              <option value="teknik-destek">Teknik Destek</option>
-              <option value="urun-tedariki">Ürün Tedariği</option>
-              <option value="cihaz-kurulumu">Cihaz Kurulumu</option>
-              <option value="devreye-alma">Devreye Alma</option>
-              <option value="diger">Diğer</option>
-            </select>
-          </div>
-
-          <!-- Açıklama -->
-          <div class="panel-hizli-field">
-            <label class="panel-hizli-label">Açıklama <span id="panelAciklamaZorunlu" style="color:var(--danger);display:none;">*</span></label>
-            <input type="text" class="modal-input" id="panelHizliAciklama"
-                   placeholder="Açıklama girin"
-                   onkeydown="if(event.key==='Enter') panelHizliEkle()" />
-          </div>
-
-          <!-- Ürün Tedariği (koşullu) -->
-          <div class="panel-hizli-field" id="panelUrunSection" style="display:none;">
-            <label class="panel-hizli-label">Ürün Bilgileri</label>
-            <div style="display:grid;grid-template-columns:1fr 90px;gap:8px;">
-              <input type="text" class="modal-input" id="panelUrunAdi" placeholder="Ürün adı *" />
-              <input type="number" class="modal-input" id="panelUrunAdet" placeholder="Adet" min="1" step="1"
-                     oninput="hesaplaPanelFiyat()" />
-            </div>
-            <div id="panelUrunCarpim" style="display:none;margin-top:5px;padding:5px 8px;background:var(--accent-dim);border-radius:6px;font-size:12px;font-weight:600;color:var(--accent);"></div>
-          </div>
-
-          <!-- Fiyat -->
-          <div class="panel-hizli-field">
-            <label class="panel-hizli-label" id="panelFiyatLabel">Fiyat (opsiyonel)</label>
-            <div style="display:flex;">
-              <select class="modal-input" id="panelHizliPB"
-                      style="width:56px;border-radius:8px 0 0 8px;border-right:none;flex-shrink:0;padding:8px 4px;text-align:center;">
-                <option value="TRY">₺</option>
-                <option value="USD">$</option>
-              </select>
-              <input type="number" class="modal-input" id="panelHizliFiyat" placeholder="0.00"
-                     step="0.01" min="0"
-                     style="border-radius:0 8px 8px 0;flex:1;"
-                     oninput="hesaplaPanelFiyat()"
-                     onkeydown="if(event.key==='Enter') panelHizliEkle()" />
-            </div>
-          </div>
-
-          <!-- Fatura / Ödeme -->
-          <div class="panel-hizli-field">
-            <label class="panel-hizli-label">Durum</label>
-            <div style="display:flex;gap:8px;">
-              <button class="panel-flag-btn" id="panelFaturaBtn" onclick="togglePanelFatura()" title="Fatura Kesildi">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1z"/><path d="M16 8H8M16 12H8M12 16H8"/></svg>
-                Fatura Kesildi
-              </button>
-              <button class="panel-flag-btn" id="panelOdemeBtn" onclick="togglePanelOdeme()" title="Ödeme Alındı">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
-                Ödeme Alındı
-              </button>
-            </div>
-          </div>
-
-          <!-- Hata mesajı -->
-          <div id="panelHizliErr" style="font-size:12px;color:var(--danger);display:none;"></div>
-
-          <!-- Ekle butonu -->
-          <button class="btn-primary" id="panelEkleBtn" onclick="panelHizliEkle()"
-                  style="width:100%;margin-top:4px;">
-            + Hizmet Ekle
-          </button>
-        </div>
-
-        <!-- İpucu -->
-        <div class="panel-hizli-ipucu">Aynı firmaya tekrar tıklayarak önizlemeye dönebilirsiniz</div>
-      </div>
     </div>
 
   </div>
@@ -476,24 +496,28 @@
     });
   }
 
-  // ── Panel modu: 'preview' | 'hizliEkle' ──
-  let panelMod = 'preview';
+  // ── Panel modu: 'hizliEkle' (varsayılan) | 'preview' ──
+  let panelMod   = 'hizliEkle';
   let panelFatura = false;
   let panelOdeme  = false;
+  let panelHizliFirmaId = null; // Hızlı ekle formundaki firma
+  let panelFirmaDdAktif = -1;
 
   async function selectFirma(id) {
     // Aynı firmaya tekrar tıklama → toggle
     if (id === seciliFirmaId && seciliFirmaId !== null) {
       if (panelMod === 'preview') {
-        acPanelHizliEkle();
+        // Preview → hızlı ekleme (firma önceden seç)
+        acPanelHizliEkle(id);
       } else {
+        // Hızlı ekleme → preview
         panelGoOnizleme();
       }
       return;
     }
 
-    // Farklı firma → her zaman önizleme
-    const panelZatenAcik = seciliFirmaId !== null;
+    // Farklı firma veya ilk tıklama → önizleme
+    const panelZatenAciktu = seciliFirmaId !== null && panelMod === 'preview';
     seciliFirmaId = id;
     panelMod = 'preview';
 
@@ -505,7 +529,7 @@
     document.getElementById('hizliEklePanel').style.display = 'none';
     const icerik = document.getElementById('onizlemeIcerik');
 
-    if (panelZatenAcik) {
+    if (panelZatenAciktu) {
       icerik.classList.add('gecis');
       await new Promise(r => setTimeout(r, 180));
     }
@@ -573,16 +597,57 @@
     icerik.classList.remove('gecis');
   }
 
-  // ── Panel Hızlı Ekle açma/kapama ──
-  function acPanelHizliEkle() {
+  // ── Panel Hızlı Ekle açma / kapama ──
+  function acPanelHizliEkle(firmaId) {
     panelMod = 'hizliEkle';
-    const f = firmaMap[seciliFirmaId];
-    if (f) {
-      document.getElementById('panelFirmaLogo').innerHTML = firmaLogo(f);
-      document.getElementById('panelFirmaAd').textContent = f.ad;
-    }
+
     // Formu sıfırla
-    document.getElementById('panelHizliTip').value = 'danismanlik';
+    sifirlaPanel();
+
+    // Firma seç (varsa)
+    if (firmaId) {
+      const f = firmaMap[firmaId];
+      if (f) _selectPanelFirmaById(firmaId);
+    }
+
+    // "← Önizleme" butonunu göster (önizlemeye dönecek bir firma var)
+    document.getElementById('panelGeriBtn').style.display = seciliFirmaId ? 'flex' : 'none';
+
+    document.getElementById('onizlemeIcerik').style.display = 'none';
+    document.getElementById('hizliEklePanel').style.display = 'flex';
+
+    renderFirmalar(tumFirmalar.filter(f => {
+      const q = document.getElementById('aramaInput').value.toLowerCase();
+      return f.ad.toLowerCase().includes(q);
+    }));
+
+    setTimeout(() => {
+      if (!panelHizliFirmaId) document.getElementById('panelFirmaInput').focus();
+      else document.getElementById('panelHizliAciklama').focus();
+    }, 80);
+  }
+
+  function panelGoOnizleme() {
+    if (!seciliFirmaId) return;
+    panelMod = 'preview';
+    document.getElementById('hizliEklePanel').style.display = 'none';
+    document.getElementById('onizlemeIcerik').style.display = 'flex';
+    renderFirmalar(tumFirmalar.filter(f => {
+      const q = document.getElementById('aramaInput').value.toLowerCase();
+      return f.ad.toLowerCase().includes(q);
+    }));
+  }
+
+  function sifirlaPanel() {
+    // Firma alanı
+    panelHizliFirmaId = null;
+    panelFirmaDdAktif = -1;
+    document.getElementById('panelFirmaSeciliDiv').style.display = 'none';
+    document.getElementById('panelFirmaAramaDiv').style.display  = 'block';
+    document.getElementById('panelFirmaInput').value = '';
+    document.getElementById('panelFirmaDdList').style.display = 'none';
+    // Diğer alanlar
+    document.getElementById('panelHizliTip').value      = 'danismanlik';
     onPanelTipChange();
     document.getElementById('panelHizliAciklama').value = '';
     document.getElementById('panelHizliFiyat').value    = '';
@@ -591,27 +656,103 @@
     panelFatura = false; panelOdeme = false;
     document.getElementById('panelFaturaBtn').classList.remove('aktif');
     document.getElementById('panelOdemeBtn').classList.remove('aktif');
-
-    document.getElementById('onizlemeIcerik').style.display  = 'none';
-    document.getElementById('hizliEklePanel').style.display  = 'flex';
-
-    renderFirmalar(tumFirmalar.filter(f => {
-      const q = document.getElementById('aramaInput').value.toLowerCase();
-      return f.ad.toLowerCase().includes(q);
-    }));
-
-    setTimeout(() => document.getElementById('panelHizliAciklama').focus(), 80);
   }
 
-  function panelGoOnizleme() {
-    panelMod = 'preview';
-    document.getElementById('hizliEklePanel').style.display  = 'none';
-    document.getElementById('onizlemeIcerik').style.display  = 'flex';
+  // ── Panel firma dropdown ──
+  function onPanelFirmaInput() {
+    const val   = document.getElementById('panelFirmaInput').value.trim().toLowerCase();
+    const ddEl  = document.getElementById('panelFirmaDdList');
+    panelFirmaDdAktif = -1;
+    if (!val) { ddEl.style.display = 'none'; return; }
 
-    renderFirmalar(tumFirmalar.filter(f => {
-      const q = document.getElementById('aramaInput').value.toLowerCase();
-      return f.ad.toLowerCase().includes(q);
-    }));
+    const eslesen = tumFirmalar.filter(f => f.ad.toLowerCase().includes(val))
+      .sort((a, b) => a.ad.localeCompare(b.ad, 'tr', { sensitivity: 'base' }));
+    const yeniMi = !tumFirmalar.find(f => f.ad.toLowerCase() === val);
+
+    let html = eslesen.map((f, i) =>
+      `<div class="firma-dd-item" data-idx="${i}" onmousedown="selectPanelFirma('${f._id}')">${firmaLogo(f)}${escHtml(f.ad)}</div>`
+    ).join('');
+
+    if (yeniMi) {
+      const raw = document.getElementById('panelFirmaInput').value.trim();
+      html += `<div class="firma-dd-item firma-dd-item-yeni" onmousedown="createAndSelectPanelFirma('${escAttr(raw)}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;flex-shrink:0;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Yeni firma: <strong style="margin-left:3px;">${escHtml(raw)}</strong>
+      </div>`;
+    }
+
+    ddEl.innerHTML = html || '<div style="padding:8px 12px;font-size:12px;color:var(--text-muted);">Sonuç yok</div>';
+    ddEl.style.display = 'block';
+  }
+
+  function onPanelFirmaKeyDown(e) {
+    const ddEl  = document.getElementById('panelFirmaDdList');
+    const items = ddEl.querySelectorAll('.firma-dd-item');
+    if (ddEl.style.display === 'none' || !items.length) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      panelFirmaDdAktif = Math.min(panelFirmaDdAktif + 1, items.length - 1);
+      items.forEach((it, i) => it.classList.toggle('dd-aktif', i === panelFirmaDdAktif));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      panelFirmaDdAktif = Math.max(panelFirmaDdAktif - 1, 0);
+      items.forEach((it, i) => it.classList.toggle('dd-aktif', i === panelFirmaDdAktif));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (panelFirmaDdAktif >= 0 && items[panelFirmaDdAktif])
+        items[panelFirmaDdAktif].dispatchEvent(new Event('mousedown'));
+    } else if (e.key === 'Escape') {
+      kapatPanelFirmaDd();
+    }
+  }
+
+  function selectPanelFirma(id) {
+    kapatPanelFirmaDd();
+    _selectPanelFirmaById(id);
+    setTimeout(() => document.getElementById('panelHizliAciklama').focus(), 60);
+  }
+
+  function _selectPanelFirmaById(id) {
+    panelHizliFirmaId = id;
+    const f = firmaMap[id];
+    if (!f) return;
+    document.getElementById('panelFirmaSeciliLogo').innerHTML = firmaLogo(f);
+    document.getElementById('panelFirmaSeciliAd').textContent  = f.ad;
+    document.getElementById('panelFirmaSeciliDiv').style.display = 'flex';
+    document.getElementById('panelFirmaAramaDiv').style.display  = 'none';
+  }
+
+  async function createAndSelectPanelFirma(ad) {
+    kapatPanelFirmaDd();
+    const input = document.getElementById('panelFirmaInput');
+    input.disabled = true;
+    try {
+      const r  = await fetch('/api/firmalar', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ad })
+      });
+      const fd = await r.json();
+      if (!r.ok) throw new Error(fd.error || 'Firma oluşturulamadı');
+      await loadFirmalar();          // Listeyi güncelle (firmaMap'e ekler)
+      _selectPanelFirmaById(fd._id);
+    } catch (err) {
+      showPanelErr(err.message);
+    } finally {
+      input.disabled = false;
+    }
+  }
+
+  function temizlePanelFirma() {
+    panelHizliFirmaId = null;
+    document.getElementById('panelFirmaSeciliDiv').style.display = 'none';
+    document.getElementById('panelFirmaAramaDiv').style.display  = 'block';
+    document.getElementById('panelFirmaInput').value = '';
+    document.getElementById('panelFirmaInput').focus();
+  }
+
+  function kapatPanelFirmaDd() {
+    document.getElementById('panelFirmaDdList').style.display = 'none';
+    panelFirmaDdAktif = -1;
   }
 
   // ── Panel form: tip değişikliği ──
@@ -665,12 +806,13 @@
 
   // ── Panel form: hizmet ekle ──
   async function panelHizliEkle() {
-    const tip       = document.getElementById('panelHizliTip').value;
-    const aciklama  = document.getElementById('panelHizliAciklama').value.trim();
-    const pb        = document.getElementById('panelHizliPB').value;
-    const fiyatVal  = document.getElementById('panelHizliFiyat').value;
-    const errEl     = document.getElementById('panelHizliErr');
-    const ekleBtn   = document.getElementById('panelEkleBtn');
+    if (!panelHizliFirmaId) { showPanelErr('Lütfen bir firma seçin'); document.getElementById('panelFirmaInput').focus(); return; }
+
+    const tip      = document.getElementById('panelHizliTip').value;
+    const aciklama = document.getElementById('panelHizliAciklama').value.trim();
+    const pb       = document.getElementById('panelHizliPB').value;
+    const fiyatVal = document.getElementById('panelHizliFiyat').value;
+    const ekleBtn  = document.getElementById('panelEkleBtn');
 
     let urunAdi = '', urunAdet = '';
     if (tip === 'urun-tedariki') {
@@ -681,7 +823,7 @@
       showPanelErr('Açıklama zorunlu'); return;
     }
 
-    errEl.style.display = 'none';
+    document.getElementById('panelHizliErr').style.display = 'none';
     ekleBtn.disabled = true;
     ekleBtn.textContent = '...';
 
@@ -694,7 +836,7 @@
       }
 
       const body = {
-        firma: seciliFirmaId, tip,
+        firma: panelHizliFirmaId, tip,
         aciklama: aciklama || (tipLabels[tip] || tip),
         fiyat: hesaplananFiyat, paraBirimi: pb, durum: 'bekliyor'
       };
@@ -717,10 +859,20 @@
         });
       }
 
-      // Başarı: önizlemeye dön, verileri yenile
+      // Başarı: formu sıfırla, listeyi yenile
+      const eklenenFirmaId = panelHizliFirmaId;
       await Promise.all([loadFirmalar(), loadOzet()]);
-      panelGoOnizleme();
-      await _yukleOnizleme(seciliFirmaId, document.getElementById('onizlemeIcerik'));
+
+      // Eğer eklenen firma şu an seçiliyse önizlemeye dön; değilse formu sıfırla
+      if (eklenenFirmaId === seciliFirmaId && seciliFirmaId) {
+        panelGoOnizleme();
+        await _yukleOnizleme(seciliFirmaId, document.getElementById('onizlemeIcerik'));
+      } else {
+        sifirlaPanel();
+        // Eklenen firmayı seç (kullanıcı devam etmek isteyebilir)
+        _selectPanelFirmaById(eklenenFirmaId);
+        document.getElementById('panelHizliAciklama').focus();
+      }
 
     } catch (err) {
       showPanelErr(err.message);
