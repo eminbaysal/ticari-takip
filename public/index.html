@@ -47,15 +47,15 @@
           <div class="summary-label">USD Toplam</div>
           <div class="summary-value" id="sumUsdGenel">—</div>
           <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px;">
-            <span style="font-size:11px;color:var(--text-muted);white-space:nowrap;">USD Tahsil Edilen</span>
-            <span style="font-size:13px;font-weight:600;color:#22c55e;" id="sumUsdTahsil">—</span>
+            <span style="font-size:12px;font-weight:500;color:var(--text-soft);white-space:nowrap;">USD Tahsil Edilen</span>
+            <span style="font-size:15px;font-weight:700;color:#22c55e;" id="sumUsdTahsil">—</span>
           </div>
         </div>
         <div class="combined-divider"></div>
         <div class="combined-col combined-col-genel">
           <div class="summary-label">Genel Toplam</div>
           <div class="summary-value" id="sumKombine">—</div>
-          <div style="margin-top:6px;min-height:16px;font-size:11px;color:var(--text-muted);" id="sumKombineUsd"></div>
+          <div style="margin-top:6px;min-height:18px;font-size:13px;font-weight:500;color:var(--text-soft);" id="sumKombineUsd"></div>
         </div>
       </div>
     </div>
@@ -65,8 +65,8 @@
       <div class="summary-label">Kesilen Fatura Tutarı</div>
       <div class="summary-value" id="sumFatura">—</div>
       <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px;">
-        <span style="font-size:11px;color:var(--text-muted);white-space:nowrap;">Tahsil Edilen</span>
-        <span style="font-size:13px;font-weight:600;color:var(--success);" id="sumTahsil">—</span>
+        <span style="font-size:12px;font-weight:500;color:var(--text-soft);white-space:nowrap;">Tahsil Edilen</span>
+        <span style="font-size:15px;font-weight:700;color:var(--success);" id="sumTahsil">—</span>
       </div>
     </div>
 
@@ -379,7 +379,7 @@
 
     const usdFmt = v => {
       const s = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
-      let tl = kurUSD ? ` <span style="opacity:0.55;font-size:12px;">(₺${new Intl.NumberFormat('tr-TR',{minimumFractionDigits:0,maximumFractionDigits:0}).format(v*kurUSD)})</span>` : '';
+      let tl = kurUSD ? ` <span style="opacity:0.72;font-size:13px;font-weight:500;">(₺${new Intl.NumberFormat('tr-TR',{minimumFractionDigits:0,maximumFractionDigits:0}).format(v*kurUSD)})</span>` : '';
       return `<span class="currency" style="font-family:inherit;">$</span>${s}${tl}`;
     };
     document.getElementById('sumUsdGenel').innerHTML  = d.usdToplam ? usdFmt(d.usdToplam) : '—';
