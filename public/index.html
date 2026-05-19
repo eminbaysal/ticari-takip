@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ana Sayfa — Ödeme Takip</title>
-<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/style.css?v=3">
 </head>
 <body>
 <div class="grid-bg"></div>
@@ -100,42 +100,6 @@
                style="margin-bottom:0;" />
       </div>
 
-      <!-- Hızlı Ekleme -->
-      <div class="hizli-ekle-wrap">
-        <div class="hizli-ekle-icon" title="Hızlı Ekle">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        </div>
-        <input type="text" class="hizli-input" id="hizliFirema" list="firmaOneri"
-               placeholder="Firma adı (mevcut veya yeni)" autocomplete="off"
-               onkeydown="if(event.key==='Enter') hizliEkle()" />
-        <datalist id="firmaOneri"></datalist>
-        <select class="hizli-input hizli-select" id="hizliTip">
-          <option value="danismanlik">Danışmanlık</option>
-          <option value="teknik-destek">Teknik Destek</option>
-          <option value="urun-tedariki">Ürün Tedariği</option>
-          <option value="cihaz-kurulumu">Cihaz Kurulumu</option>
-          <option value="devreye-alma">Devreye Alma</option>
-          <option value="diger">Diğer</option>
-        </select>
-        <div class="hizli-fiyat-wrap">
-          <select class="hizli-input hizli-pb" id="hizliPB">
-            <option value="TRY">₺</option>
-            <option value="USD">$</option>
-          </select>
-          <input type="number" class="hizli-input" id="hizliFiyat" placeholder="Fiyat"
-                 step="0.01" min="0" style="border-radius:0 8px 8px 0;width:80px;"
-                 onkeydown="if(event.key==='Enter') hizliEkle()" />
-        </div>
-        <button class="action-icon-btn fatura-btn" id="hizliFaturaBtn" onclick="toggleHizliFatura()" title="Fatura Kesildi">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1z"/><path d="M16 8H8M16 12H8M12 16H8"/></svg>
-        </button>
-        <button class="action-icon-btn pay-btn" id="hizliOdemeBtn" onclick="toggleHizliOdeme()" title="Ödeme Alındı">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
-        </button>
-        <button class="btn-primary" id="hizliEkleBtn" onclick="hizliEkle()" style="padding:6px 14px;font-size:12px;flex-shrink:0;">+ Ekle</button>
-        <span class="hizli-msg" id="hizliMsg"></span>
-      </div>
-
       <div id="firmaListesi"></div>
     </div>
 
@@ -161,6 +125,101 @@
           </div>
         </div>
         <div class="onizleme-hizmetler" id="onizlemeHizmetler"></div>
+      </div>
+
+      <!-- Panel: Hızlı Hizmet Ekle (aynı firmaya 2. tıklamada açılır) -->
+      <div class="panel-hizli-ekle" id="hizliEklePanel" style="display:none;">
+        <!-- Firma başlığı + geri butonu -->
+        <div class="panel-hizli-baslik">
+          <div id="panelFirmaLogo"></div>
+          <div style="min-width:0;flex:1;">
+            <div class="panel-hizli-firma-ad" id="panelFirmaAd"></div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:1px;">Hızlı Hizmet Ekle</div>
+          </div>
+          <button class="btn-ghost panel-hizli-geri-btn" onclick="panelGoOnizleme()" title="Önizlemeye dön">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><polyline points="15 18 9 12 15 6"/></svg>
+            Önizleme
+          </button>
+        </div>
+
+        <!-- Form alanları -->
+        <div class="panel-hizli-form">
+          <!-- Hizmet Tipi -->
+          <div class="panel-hizli-field">
+            <label class="panel-hizli-label">Hizmet Tipi</label>
+            <select class="modal-input modal-select" id="panelHizliTip" onchange="onPanelTipChange()">
+              <option value="danismanlik">Danışmanlık</option>
+              <option value="teknik-destek">Teknik Destek</option>
+              <option value="urun-tedariki">Ürün Tedariği</option>
+              <option value="cihaz-kurulumu">Cihaz Kurulumu</option>
+              <option value="devreye-alma">Devreye Alma</option>
+              <option value="diger">Diğer</option>
+            </select>
+          </div>
+
+          <!-- Açıklama -->
+          <div class="panel-hizli-field">
+            <label class="panel-hizli-label">Açıklama <span id="panelAciklamaZorunlu" style="color:var(--danger);display:none;">*</span></label>
+            <input type="text" class="modal-input" id="panelHizliAciklama"
+                   placeholder="Açıklama girin"
+                   onkeydown="if(event.key==='Enter') panelHizliEkle()" />
+          </div>
+
+          <!-- Ürün Tedariği (koşullu) -->
+          <div class="panel-hizli-field" id="panelUrunSection" style="display:none;">
+            <label class="panel-hizli-label">Ürün Bilgileri</label>
+            <div style="display:grid;grid-template-columns:1fr 90px;gap:8px;">
+              <input type="text" class="modal-input" id="panelUrunAdi" placeholder="Ürün adı *" />
+              <input type="number" class="modal-input" id="panelUrunAdet" placeholder="Adet" min="1" step="1"
+                     oninput="hesaplaPanelFiyat()" />
+            </div>
+            <div id="panelUrunCarpim" style="display:none;margin-top:5px;padding:5px 8px;background:var(--accent-dim);border-radius:6px;font-size:12px;font-weight:600;color:var(--accent);"></div>
+          </div>
+
+          <!-- Fiyat -->
+          <div class="panel-hizli-field">
+            <label class="panel-hizli-label" id="panelFiyatLabel">Fiyat (opsiyonel)</label>
+            <div style="display:flex;">
+              <select class="modal-input" id="panelHizliPB"
+                      style="width:56px;border-radius:8px 0 0 8px;border-right:none;flex-shrink:0;padding:8px 4px;text-align:center;">
+                <option value="TRY">₺</option>
+                <option value="USD">$</option>
+              </select>
+              <input type="number" class="modal-input" id="panelHizliFiyat" placeholder="0.00"
+                     step="0.01" min="0"
+                     style="border-radius:0 8px 8px 0;flex:1;"
+                     oninput="hesaplaPanelFiyat()"
+                     onkeydown="if(event.key==='Enter') panelHizliEkle()" />
+            </div>
+          </div>
+
+          <!-- Fatura / Ödeme -->
+          <div class="panel-hizli-field">
+            <label class="panel-hizli-label">Durum</label>
+            <div style="display:flex;gap:8px;">
+              <button class="panel-flag-btn" id="panelFaturaBtn" onclick="togglePanelFatura()" title="Fatura Kesildi">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1z"/><path d="M16 8H8M16 12H8M12 16H8"/></svg>
+                Fatura Kesildi
+              </button>
+              <button class="panel-flag-btn" id="panelOdemeBtn" onclick="togglePanelOdeme()" title="Ödeme Alındı">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+                Ödeme Alındı
+              </button>
+            </div>
+          </div>
+
+          <!-- Hata mesajı -->
+          <div id="panelHizliErr" style="font-size:12px;color:var(--danger);display:none;"></div>
+
+          <!-- Ekle butonu -->
+          <button class="btn-primary" id="panelEkleBtn" onclick="panelHizliEkle()"
+                  style="width:100%;margin-top:4px;">
+            + Hizmet Ekle
+          </button>
+        </div>
+
+        <!-- İpucu -->
+        <div class="panel-hizli-ipucu">Aynı firmaya tekrar tıklayarak önizlemeye dönebilirsiniz</div>
       </div>
     </div>
 
@@ -344,41 +403,46 @@
     }
 
     el.innerHTML = `<div class="firma-liste">
-      <div class="firma-liste-baslik">
-        <span style="text-align:left;padding-left:2px;">Firma Adı</span>
-        <span class="col-header-fin">${icoWallet}<span>Toplam Tutar</span></span>
-        <span class="col-header-fin">${icoReceipt}<span>Kesilen Fatura</span></span>
-        <span class="col-header-fin">${icoBanknote}<span>Alınan Ödeme</span></span>
-        <span class="col-header-fin">${icoBalance}<span>Kalan Bakiye</span></span>
-        <span>İşlemler</span>
-      </div>
       ${firmalar.map(f => {
         const fin   = f.fin || { toplam: 0, fatura: 0, odeme: 0, kesilmemis: 0, usdKesilmemis: 0, usdVarMi: false };
-        // Kalan Bakiye = fatura kesilmemiş TRY tutarı + fatura kesilmemiş USD tutarının güncel kur TL karşılığı
         const usdKalanTL = (fin.usdKesilmemis || 0) > 0 && kurUSD ? fin.usdKesilmemis * kurUSD : 0;
         const kalan      = (fin.kesilmemis || 0) + usdKalanTL;
-        // "Tamamlandı" ancak TRY ve USD hizmetlerin tamamı faturalandıysa göster
         const tumFaturaKesildi = kalan === 0 && (fin.toplam > 0 || fin.fatura > 0);
-        // Kur bilinmiyorsa USD kesilmemişi ayrıca göster
         const usdKalanBilinmiyor = (fin.usdKesilmemis || 0) > 0 && !kurUSD;
-        const kalanHtml = tumFaturaKesildi && !usdKalanBilinmiyor
-          ? `<span class="badge badge-glowing" style="font-size:10px;padding:2px 8px;width:auto;">Tamamlandı ✓</span>`
-          : (kalan > 0 || usdKalanBilinmiyor)
-            ? `<span class="firma-kalan-warn">${kalan > 0 ? formatPara(kalan) : ''}${usdKalanBilinmiyor ? `<span style="font-size:10px;color:var(--warn);display:block;">+$${new Intl.NumberFormat('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}).format(fin.usdKesilmemis)} USD</span>` : ''}</span>`
-            : `<span style="opacity:0.28">—</span>`;
+
+        let kalanHtml;
+        if (tumFaturaKesildi && !usdKalanBilinmiyor) {
+          kalanHtml = `<span class="badge badge-glowing" style="font-size:10px;padding:2px 8px;">✓</span>`;
+        } else if (kalan > 0 || usdKalanBilinmiyor) {
+          const usdEk = usdKalanBilinmiyor
+            ? `<span style="font-size:10px;color:var(--warn);display:block;text-align:right;">+$${new Intl.NumberFormat('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}).format(fin.usdKesilmemis)}</span>`
+            : '';
+          kalanHtml = `<span class="firma-kart-kalan firma-kart-kalan-warn">${kalan > 0 ? formatPara(kalan) : ''}${usdEk}</span>`;
+        } else {
+          kalanHtml = `<span style="opacity:0.25;font-size:12px;">—</span>`;
+        }
+
+        // Alt bilgi: toplam hizmet sayısı veya para bilgisi
+        const hizmetSayisi = fin.hizmetSayisi || 0;
+        const altHtml = fin.usdVarMi
+          ? `<span style="font-size:10px;color:#22c55e;margin-top:1px;">USD içeriyor</span>`
+          : hizmetSayisi > 0
+            ? `<span style="font-size:10px;color:var(--text-muted);margin-top:1px;">${hizmetSayisi} hizmet</span>`
+            : '';
+
+        const aktifCls = seciliFirmaId === f._id
+          ? (panelMod === 'hizliEkle' ? 'aktif hizli-mod' : 'aktif')
+          : '';
         return `
-        <div class="firma-liste-row ${seciliFirmaId === f._id ? 'aktif' : ''}" data-id="${f._id}" style="cursor:pointer;">
-          <div style="display:flex;align-items:center;gap:11px;min-width:0;">
+        <div class="firma-liste-row ${aktifCls}" data-id="${f._id}">
+          <div style="display:flex;align-items:center;gap:10px;min-width:0;">
             ${firmaLogo(f)}
-            <div style="min-width:0;">
+            <div style="min-width:0;display:flex;flex-direction:column;">
               <div class="firma-liste-ad">${escHtml(f.ad)}</div>
-              ${fin.usdVarMi ? `<div style="font-size:10px;color:#22c55e;opacity:0.8;margin-top:1px;">+USD</div>` : ''}
+              ${altHtml}
             </div>
           </div>
-          <div class="firma-fin-val firma-col-toplam">${fin.toplam > 0 ? formatPara(fin.toplam) : '<span style="opacity:0.28">—</span>'}</div>
-          <div class="firma-fin-val firma-col-fatura${fin.fatura === 0 ? ' fin-pending' : ''}">${fin.fatura > 0 ? formatPara(fin.fatura) : '<span style="opacity:0.28">—</span>'}</div>
-          <div class="firma-fin-val fin-success firma-col-odeme">${fin.odeme > 0 ? formatPara(fin.odeme) : '<span style="opacity:0.28">—</span>'}</div>
-          <div class="firma-fin-val firma-col-kalan">${kalanHtml}</div>
+          <div class="firma-kart-kalan">${kalanHtml}</div>
           <div class="firma-liste-actions">
             <button class="btn-icon edit-btn" data-id="${f._id}">✎</button>
             <button class="btn-icon danger delete-btn" data-id="${f._id}">✕</button>
@@ -412,14 +476,33 @@
     });
   }
 
+  // ── Panel modu: 'preview' | 'hizliEkle' ──
+  let panelMod = 'preview';
+  let panelFatura = false;
+  let panelOdeme  = false;
+
   async function selectFirma(id) {
+    // Aynı firmaya tekrar tıklama → toggle
+    if (id === seciliFirmaId && seciliFirmaId !== null) {
+      if (panelMod === 'preview') {
+        acPanelHizliEkle();
+      } else {
+        panelGoOnizleme();
+      }
+      return;
+    }
+
+    // Farklı firma → her zaman önizleme
     const panelZatenAcik = seciliFirmaId !== null;
     seciliFirmaId = id;
+    panelMod = 'preview';
+
     renderFirmalar(tumFirmalar.filter(f => {
       const q = document.getElementById('aramaInput').value.toLowerCase();
       return f.ad.toLowerCase().includes(q);
     }));
 
+    document.getElementById('hizliEklePanel').style.display = 'none';
     const icerik = document.getElementById('onizlemeIcerik');
 
     if (panelZatenAcik) {
@@ -427,6 +510,10 @@
       await new Promise(r => setTimeout(r, 180));
     }
 
+    await _yukleOnizleme(id, icerik);
+  }
+
+  async function _yukleOnizleme(id, icerik) {
     const res = await fetch(`/api/firmalar/${id}/detay`);
     if (!res.ok) return;
     const d = await res.json();
@@ -434,8 +521,6 @@
     document.getElementById('onizlemeBos').style.display = 'none';
     icerik.style.display = 'flex';
     document.querySelector('.split-panel').classList.add('onizleme-acik');
-    const ipucu = document.getElementById('firmaIpucu');
-    if (ipucu) ipucu.style.display = 'none';
 
     document.getElementById('onizlemeLogo').innerHTML  = firmaLogo(d.firma);
     document.getElementById('onizlemeAd').textContent  = d.firma.ad;
@@ -468,7 +553,6 @@
     if (!d.hizmetler.length) {
       hEl.innerHTML = '<div class="empty-state" style="padding:24px 0;">Henüz hizmet kaydı yok.</div>';
     } else {
-      // tip 108px | durum otomatik genişlik | fiyat kalan (sağa hizalı)
       const OC = '108px auto 1fr';
       hEl.innerHTML = `<div class="hizmet-liste" style="margin-top:0;">
         <div class="hizmet-liste-baslik" style="grid-template-columns:${OC};padding:4px 10px 4px 12px;font-size:10px;gap:8px;color:var(--text-muted);">
@@ -487,6 +571,169 @@
     }
 
     icerik.classList.remove('gecis');
+  }
+
+  // ── Panel Hızlı Ekle açma/kapama ──
+  function acPanelHizliEkle() {
+    panelMod = 'hizliEkle';
+    const f = firmaMap[seciliFirmaId];
+    if (f) {
+      document.getElementById('panelFirmaLogo').innerHTML = firmaLogo(f);
+      document.getElementById('panelFirmaAd').textContent = f.ad;
+    }
+    // Formu sıfırla
+    document.getElementById('panelHizliTip').value = 'danismanlik';
+    onPanelTipChange();
+    document.getElementById('panelHizliAciklama').value = '';
+    document.getElementById('panelHizliFiyat').value    = '';
+    document.getElementById('panelHizliPB').value       = 'TRY';
+    document.getElementById('panelHizliErr').style.display = 'none';
+    panelFatura = false; panelOdeme = false;
+    document.getElementById('panelFaturaBtn').classList.remove('aktif');
+    document.getElementById('panelOdemeBtn').classList.remove('aktif');
+
+    document.getElementById('onizlemeIcerik').style.display  = 'none';
+    document.getElementById('hizliEklePanel').style.display  = 'flex';
+
+    renderFirmalar(tumFirmalar.filter(f => {
+      const q = document.getElementById('aramaInput').value.toLowerCase();
+      return f.ad.toLowerCase().includes(q);
+    }));
+
+    setTimeout(() => document.getElementById('panelHizliAciklama').focus(), 80);
+  }
+
+  function panelGoOnizleme() {
+    panelMod = 'preview';
+    document.getElementById('hizliEklePanel').style.display  = 'none';
+    document.getElementById('onizlemeIcerik').style.display  = 'flex';
+
+    renderFirmalar(tumFirmalar.filter(f => {
+      const q = document.getElementById('aramaInput').value.toLowerCase();
+      return f.ad.toLowerCase().includes(q);
+    }));
+  }
+
+  // ── Panel form: tip değişikliği ──
+  function onPanelTipChange() {
+    const tip = document.getElementById('panelHizliTip').value;
+    const urunSec  = document.getElementById('panelUrunSection');
+    const fiyatLbl = document.getElementById('panelFiyatLabel');
+    const aciklamaZor = document.getElementById('panelAciklamaZorunlu');
+    if (tip === 'urun-tedariki') {
+      urunSec.style.display  = 'block';
+      fiyatLbl.textContent   = 'Birim Fiyat (opsiyonel)';
+      aciklamaZor.style.display = 'none';
+    } else {
+      urunSec.style.display  = 'none';
+      fiyatLbl.textContent   = 'Fiyat (opsiyonel)';
+      aciklamaZor.style.display = 'inline';
+      document.getElementById('panelUrunAdi').value  = '';
+      document.getElementById('panelUrunAdet').value = '';
+      document.getElementById('panelUrunCarpim').style.display = 'none';
+    }
+    hesaplaPanelFiyat();
+  }
+
+  // ── Panel form: birim × adet önizleme ──
+  function hesaplaPanelFiyat() {
+    const tip    = document.getElementById('panelHizliTip').value;
+    const carpEl = document.getElementById('panelUrunCarpim');
+    if (tip !== 'urun-tedariki') { carpEl.style.display = 'none'; return; }
+    const birim = parseFloat(document.getElementById('panelHizliFiyat').value);
+    const adet  = parseFloat(document.getElementById('panelUrunAdet').value);
+    const pb    = document.getElementById('panelHizliPB').value;
+    const sym   = pb === 'USD' ? '$' : '₺';
+    const fmt   = v => new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
+    if (birim > 0 && adet > 0) {
+      carpEl.style.display = 'block';
+      carpEl.textContent   = `${adet} adet × ${sym}${fmt(birim)} = ${sym}${fmt(birim * adet)}`;
+    } else {
+      carpEl.style.display = 'none';
+    }
+  }
+
+  // ── Panel form: fatura/ödeme toggle ──
+  function togglePanelFatura() {
+    panelFatura = !panelFatura;
+    document.getElementById('panelFaturaBtn').classList.toggle('aktif', panelFatura);
+  }
+  function togglePanelOdeme() {
+    panelOdeme = !panelOdeme;
+    document.getElementById('panelOdemeBtn').classList.toggle('aktif', panelOdeme);
+  }
+
+  // ── Panel form: hizmet ekle ──
+  async function panelHizliEkle() {
+    const tip       = document.getElementById('panelHizliTip').value;
+    const aciklama  = document.getElementById('panelHizliAciklama').value.trim();
+    const pb        = document.getElementById('panelHizliPB').value;
+    const fiyatVal  = document.getElementById('panelHizliFiyat').value;
+    const errEl     = document.getElementById('panelHizliErr');
+    const ekleBtn   = document.getElementById('panelEkleBtn');
+
+    let urunAdi = '', urunAdet = '';
+    if (tip === 'urun-tedariki') {
+      urunAdi  = document.getElementById('panelUrunAdi').value.trim();
+      urunAdet = document.getElementById('panelUrunAdet').value;
+      if (!urunAdi) { showPanelErr('Ürün adı zorunlu'); return; }
+    } else if (!aciklama) {
+      showPanelErr('Açıklama zorunlu'); return;
+    }
+
+    errEl.style.display = 'none';
+    ekleBtn.disabled = true;
+    ekleBtn.textContent = '...';
+
+    try {
+      let hesaplananFiyat = fiyatVal !== '' ? parseFloat(fiyatVal) : null;
+      if (tip === 'urun-tedariki' && fiyatVal !== '' && urunAdet !== '') {
+        const birim = parseFloat(fiyatVal);
+        const adet2 = parseFloat(urunAdet);
+        if (birim > 0 && adet2 > 0) hesaplananFiyat = Math.round(birim * adet2 * 100) / 100;
+      }
+
+      const body = {
+        firma: seciliFirmaId, tip,
+        aciklama: aciklama || (tipLabels[tip] || tip),
+        fiyat: hesaplananFiyat, paraBirimi: pb, durum: 'bekliyor'
+      };
+      if (tip === 'urun-tedariki' && urunAdi) {
+        body.urunAdi = urunAdi;
+        if (urunAdet !== '') body.adet = parseFloat(urunAdet);
+      }
+
+      const hRes = await fetch('/api/hizmetler', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const hd = await hRes.json();
+      if (!hRes.ok) throw new Error(hd.error || 'Hizmet oluşturulamadı');
+
+      if (panelFatura || panelOdeme) {
+        await fetch(`/api/hizmetler/${hd._id}/flags`, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ faturaKesildi: panelFatura || panelOdeme, tahsilEdildi: panelOdeme })
+        });
+      }
+
+      // Başarı: önizlemeye dön, verileri yenile
+      await Promise.all([loadFirmalar(), loadOzet()]);
+      panelGoOnizleme();
+      await _yukleOnizleme(seciliFirmaId, document.getElementById('onizlemeIcerik'));
+
+    } catch (err) {
+      showPanelErr(err.message);
+    } finally {
+      ekleBtn.disabled = false;
+      ekleBtn.textContent = '+ Hizmet Ekle';
+    }
+  }
+
+  function showPanelErr(msg) {
+    const el = document.getElementById('panelHizliErr');
+    el.textContent = msg;
+    el.style.display = 'block';
   }
 
   function filterFirmalar() {
@@ -510,15 +757,114 @@
     }
   }
 
-  // ── Hızlı Ekleme ──
-  let hizliFatura = false;
-  let hizliOdeme  = false;
+  // ── Eski hızlı ekleme (sol panel) artık kullanılmıyor ──
+  // Tüm hızlı ekleme fonksiyonları panelHizliEkle olarak sağ panele taşındı.
+  function updateFirmaOneri() { /* no-op */ }
 
-  function updateFirmaOneri() {
-    const dl = document.getElementById('firmaOneri');
-    if (dl) dl.innerHTML = tumFirmalar.map(f =>
-      `<option value="${f.ad.replace(/"/g, '&quot;')}">`
-    ).join('');
+  let firmaDdAktifIdx = -1;
+
+  // Dropdown (eski sol panel — devre dışı, ama yedekte tutuldu)
+  function onHizliFiremaInput() {
+    const val = document.getElementById('hizliFirema').value.trim().toLowerCase();
+    const listEl = document.getElementById('firmaDdList');
+    firmaDdAktifIdx = -1;
+
+    if (!val) { listEl.style.display = 'none'; return; }
+
+    const eslesen = tumFirmalar.filter(f => f.ad.toLowerCase().includes(val));
+    const yeniMi  = !tumFirmalar.find(f => f.ad.toLowerCase() === val);
+
+    if (!eslesen.length && !yeniMi) { listEl.style.display = 'none'; return; }
+
+    let html = eslesen.map((f, i) => {
+      const logoHtml = firmaLogo(f);
+      return `<div class="firma-dd-item" data-idx="${i}" onmousedown="selectHizliFirma('${escAttr(f.ad)}')">${logoHtml}${escHtml(f.ad)}</div>`;
+    }).join('');
+
+    if (yeniMi && val.length > 0) {
+      const rawVal = document.getElementById('hizliFirema').value.trim();
+      html += `<div class="firma-dd-item firma-dd-item-yeni" onmousedown="selectHizliFirma('${escAttr(rawVal)}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Yeni firma: <strong>${escHtml(rawVal)}</strong>
+      </div>`;
+    }
+
+    listEl.innerHTML = html;
+    listEl.style.display = 'block';
+  }
+
+  function onHizliFiremaKeyDown(e) {
+    const listEl = document.getElementById('firmaDdList');
+    const items  = listEl.querySelectorAll('.firma-dd-item');
+    if (listEl.style.display === 'none' || !items.length) {
+      if (e.key === 'Enter') hizliEkle();
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      firmaDdAktifIdx = Math.min(firmaDdAktifIdx + 1, items.length - 1);
+      items.forEach((it, i) => it.classList.toggle('dd-aktif', i === firmaDdAktifIdx));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      firmaDdAktifIdx = Math.max(firmaDdAktifIdx - 1, 0);
+      items.forEach((it, i) => it.classList.toggle('dd-aktif', i === firmaDdAktifIdx));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (firmaDdAktifIdx >= 0 && items[firmaDdAktifIdx]) {
+        items[firmaDdAktifIdx].dispatchEvent(new Event('mousedown'));
+      } else {
+        closeFirmaDd();
+        hizliEkle();
+      }
+    } else if (e.key === 'Escape') {
+      closeFirmaDd();
+    }
+  }
+
+  function selectHizliFirma(ad) {
+    document.getElementById('hizliFirema').value = ad;
+    closeFirmaDd();
+    document.getElementById('hizliTip').focus();
+  }
+
+  function closeFirmaDd() {
+    document.getElementById('firmaDdList').style.display = 'none';
+    firmaDdAktifIdx = -1;
+  }
+
+  // ── Hizmet Tip Değişikliği ──
+  function onHizliTipChange() {
+    const tip = document.getElementById('hizliTip').value;
+    const urunSatir = document.getElementById('hizliUrunSatir');
+    const fiyatInput = document.getElementById('hizliFiyat');
+    if (tip === 'urun-tedariki') {
+      urunSatir.style.display = 'flex';
+      fiyatInput.placeholder = 'Birim Fiyat';
+    } else {
+      urunSatir.style.display = 'none';
+      fiyatInput.placeholder = 'Fiyat';
+      document.getElementById('hizliUrunAdi').value  = '';
+      document.getElementById('hizliUrunAdet').value = '';
+      document.getElementById('hizliCarpim').style.display = 'none';
+    }
+  }
+
+  // ── Ürün Carpım Önizleme ──
+  function hesaplaHizliFiyat() {
+    const tip   = document.getElementById('hizliTip').value;
+    const carpEl = document.getElementById('hizliCarpim');
+    if (tip !== 'urun-tedariki') { carpEl.style.display = 'none'; return; }
+    const birim = parseFloat(document.getElementById('hizliFiyat').value);
+    const adet  = parseFloat(document.getElementById('hizliUrunAdet').value);
+    const pb    = document.getElementById('hizliPB').value;
+    const sym   = pb === 'USD' ? '$' : '₺';
+    const fmt   = v => new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
+    if (birim > 0 && adet > 0) {
+      carpEl.style.display = 'inline-block';
+      carpEl.textContent   = `${adet} × ${sym}${fmt(birim)} = ${sym}${fmt(birim * adet)}`;
+    } else {
+      carpEl.style.display = 'none';
+    }
   }
 
   function toggleHizliFatura() {
@@ -531,17 +877,38 @@
   }
 
   async function hizliEkle() {
-    const firmaAdi = document.getElementById('hizliFirema').value.trim();
-    const tip      = document.getElementById('hizliTip').value;
-    const pb       = document.getElementById('hizliPB').value;
-    const fiyatVal = document.getElementById('hizliFiyat').value;
-    const ekleBtn  = document.getElementById('hizliEkleBtn');
+    const firmaAdi  = document.getElementById('hizliFirema').value.trim();
+    const tip       = document.getElementById('hizliTip').value;
+    const pb        = document.getElementById('hizliPB').value;
+    const fiyatVal  = document.getElementById('hizliFiyat').value;
+    const aciklama  = document.getElementById('hizliAciklama').value.trim();
+    const ekleBtn   = document.getElementById('hizliEkleBtn');
+
+    let urunAdi = '', urunAdet = '';
+    if (tip === 'urun-tedariki') {
+      urunAdi  = document.getElementById('hizliUrunAdi').value.trim();
+      urunAdet = document.getElementById('hizliUrunAdet').value;
+      if (!urunAdi) {
+        document.getElementById('hizliUrunAdi').focus();
+        showHizliMsg('Ürün adı zorunlu', 'warn');
+        return;
+      }
+    }
 
     if (!firmaAdi) {
       document.getElementById('hizliFirema').focus();
       showHizliMsg('Firma adı zorunlu', 'warn');
       return;
     }
+
+    // Ürün tedariğinde: birim × adet = toplam fiyat
+    let hesaplananFiyat = fiyatVal !== '' ? parseFloat(fiyatVal) : null;
+    if (tip === 'urun-tedariki' && fiyatVal !== '' && urunAdet !== '') {
+      const birim = parseFloat(fiyatVal);
+      const adet2 = parseFloat(urunAdet);
+      if (birim > 0 && adet2 > 0) hesaplananFiyat = Math.round(birim * adet2 * 100) / 100;
+    }
+
     ekleBtn.disabled = true;
     ekleBtn.textContent = '...';
 
@@ -564,14 +931,22 @@
       }
 
       // 2. Hizmet oluştur
+      const finalAciklama = aciklama || (tip !== 'urun-tedariki' ? (tipLabels[tip] || tip) : '');
+      const hBody = {
+        firma: firmaId, tip,
+        aciklama: finalAciklama,
+        fiyat: hesaplananFiyat,
+        paraBirimi: pb,
+        durum: 'bekliyor'
+      };
+      if (tip === 'urun-tedariki' && urunAdi) {
+        hBody.urunAdi = urunAdi;
+        if (urunAdet !== '') hBody.adet = parseFloat(urunAdet);
+      }
+
       const hRes = await fetch('/api/hizmetler', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          firma: firmaId, tip,
-          aciklama: tipLabels[tip] || tip,
-          fiyat: fiyatVal !== '' ? parseFloat(fiyatVal) : null,
-          paraBirimi: pb, durum: 'bekliyor'
-        })
+        body: JSON.stringify(hBody)
       });
       const hd = await hRes.json();
       if (!hRes.ok) throw new Error(hd.error || 'Hizmet oluşturulamadı');
@@ -588,9 +963,12 @@
       }
 
       // 4. Formu sıfırla
-      document.getElementById('hizliFirema').value = '';
-      document.getElementById('hizliFiyat').value  = '';
-      document.getElementById('hizliPB').value     = 'TRY';
+      document.getElementById('hizliFirema').value  = '';
+      document.getElementById('hizliFiyat').value   = '';
+      document.getElementById('hizliAciklama').value = '';
+      document.getElementById('hizliPB').value      = 'TRY';
+      document.getElementById('hizliTip').value     = 'danismanlik';
+      onHizliTipChange();
       hizliFatura = false; hizliOdeme = false;
       document.getElementById('hizliFaturaBtn').classList.remove('checked');
       document.getElementById('hizliOdemeBtn').classList.remove('checked');
