@@ -85,9 +85,57 @@
     <div class="split-left">
       <div class="section-header">
         <h2>Firmalar</h2>
-        <button class="btn-primary" onclick="openFirmaModal()">+ Firma Ekle</button>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button class="nav-icon-btn" id="aramaToggleBtn" onclick="toggleArama()" title="Firma Ara">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+          <button class="btn-primary" onclick="openFirmaModal()">+ Firma Ekle</button>
+        </div>
       </div>
-      <input type="text" class="search-input" id="aramaInput" placeholder="Firma ara..." oninput="filterFirmalar()" />
+
+      <!-- Arama çubuğu (büyütece tıklayınca açılır) -->
+      <div class="arama-wrap" id="aramaWrap">
+        <input type="text" class="search-input" id="aramaInput" placeholder="Firma ara..."
+               oninput="filterFirmalar()" onkeydown="if(event.key==='Escape') toggleArama()"
+               style="margin-bottom:0;" />
+      </div>
+
+      <!-- Hızlı Ekleme -->
+      <div class="hizli-ekle-wrap">
+        <div class="hizli-ekle-icon" title="Hızlı Ekle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </div>
+        <input type="text" class="hizli-input" id="hizliFirema" list="firmaOneri"
+               placeholder="Firma adı (mevcut veya yeni)" autocomplete="off"
+               onkeydown="if(event.key==='Enter') hizliEkle()" />
+        <datalist id="firmaOneri"></datalist>
+        <select class="hizli-input hizli-select" id="hizliTip">
+          <option value="danismanlik">Danışmanlık</option>
+          <option value="teknik-destek">Teknik Destek</option>
+          <option value="urun-tedariki">Ürün Tedariği</option>
+          <option value="cihaz-kurulumu">Cihaz Kurulumu</option>
+          <option value="devreye-alma">Devreye Alma</option>
+          <option value="diger">Diğer</option>
+        </select>
+        <div class="hizli-fiyat-wrap">
+          <select class="hizli-input hizli-pb" id="hizliPB">
+            <option value="TRY">₺</option>
+            <option value="USD">$</option>
+          </select>
+          <input type="number" class="hizli-input" id="hizliFiyat" placeholder="Fiyat"
+                 step="0.01" min="0" style="border-radius:0 8px 8px 0;width:80px;"
+                 onkeydown="if(event.key==='Enter') hizliEkle()" />
+        </div>
+        <button class="action-icon-btn fatura-btn" id="hizliFaturaBtn" onclick="toggleHizliFatura()" title="Fatura Kesildi">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1z"/><path d="M16 8H8M16 12H8M12 16H8"/></svg>
+        </button>
+        <button class="action-icon-btn pay-btn" id="hizliOdemeBtn" onclick="toggleHizliOdeme()" title="Ödeme Alındı">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+        </button>
+        <button class="btn-primary" id="hizliEkleBtn" onclick="hizliEkle()" style="padding:6px 14px;font-size:12px;flex-shrink:0;">+ Ekle</button>
+        <span class="hizli-msg" id="hizliMsg"></span>
+      </div>
+
       <div id="firmaListesi"></div>
     </div>
 
@@ -279,6 +327,7 @@
     firmaMap = {};
     tumFirmalar.forEach(f => firmaMap[f._id] = f);
     renderFirmalar(tumFirmalar);
+    updateFirmaOneri();
   }
 
   // Kolon başlığı ikonları
@@ -443,6 +492,126 @@
   function filterFirmalar() {
     const q = document.getElementById('aramaInput').value.toLowerCase();
     renderFirmalar(tumFirmalar.filter(f => f.ad.toLowerCase().includes(q)));
+  }
+
+  // ── Arama toggle ──
+  let aramaAcik = false;
+  function toggleArama() {
+    aramaAcik = !aramaAcik;
+    const wrap = document.getElementById('aramaWrap');
+    const btn  = document.getElementById('aramaToggleBtn');
+    wrap.classList.toggle('arama-acik', aramaAcik);
+    btn.classList.toggle('arama-aktif', aramaAcik);
+    if (aramaAcik) {
+      document.getElementById('aramaInput').focus();
+    } else {
+      document.getElementById('aramaInput').value = '';
+      filterFirmalar();
+    }
+  }
+
+  // ── Hızlı Ekleme ──
+  let hizliFatura = false;
+  let hizliOdeme  = false;
+
+  function updateFirmaOneri() {
+    const dl = document.getElementById('firmaOneri');
+    if (dl) dl.innerHTML = tumFirmalar.map(f =>
+      `<option value="${f.ad.replace(/"/g, '&quot;')}">`
+    ).join('');
+  }
+
+  function toggleHizliFatura() {
+    hizliFatura = !hizliFatura;
+    document.getElementById('hizliFaturaBtn').classList.toggle('checked', hizliFatura);
+  }
+  function toggleHizliOdeme() {
+    hizliOdeme = !hizliOdeme;
+    document.getElementById('hizliOdemeBtn').classList.toggle('checked', hizliOdeme);
+  }
+
+  async function hizliEkle() {
+    const firmaAdi = document.getElementById('hizliFirema').value.trim();
+    const tip      = document.getElementById('hizliTip').value;
+    const pb       = document.getElementById('hizliPB').value;
+    const fiyatVal = document.getElementById('hizliFiyat').value;
+    const ekleBtn  = document.getElementById('hizliEkleBtn');
+
+    if (!firmaAdi) {
+      document.getElementById('hizliFirema').focus();
+      showHizliMsg('Firma adı zorunlu', 'warn');
+      return;
+    }
+    ekleBtn.disabled = true;
+    ekleBtn.textContent = '...';
+
+    try {
+      // 1. Firma bul veya oluştur
+      let firmaId;
+      const existing = tumFirmalar.find(f =>
+        f.ad.toLowerCase() === firmaAdi.toLowerCase()
+      );
+      if (existing) {
+        firmaId = existing._id;
+      } else {
+        const r = await fetch('/api/firmalar', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ad: firmaAdi })
+        });
+        const rd = await r.json();
+        if (!r.ok) throw new Error(rd.error || 'Firma oluşturulamadı');
+        firmaId = rd._id;
+      }
+
+      // 2. Hizmet oluştur
+      const hRes = await fetch('/api/hizmetler', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firma: firmaId, tip,
+          aciklama: tipLabels[tip] || tip,
+          fiyat: fiyatVal !== '' ? parseFloat(fiyatVal) : null,
+          paraBirimi: pb, durum: 'bekliyor'
+        })
+      });
+      const hd = await hRes.json();
+      if (!hRes.ok) throw new Error(hd.error || 'Hizmet oluşturulamadı');
+
+      // 3. Fatura / Ödeme flag güncelle
+      if (hizliFatura || hizliOdeme) {
+        await fetch(`/api/hizmetler/${hd._id}/flags`, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            faturaKesildi: hizliFatura || hizliOdeme,
+            tahsilEdildi:  hizliOdeme
+          })
+        });
+      }
+
+      // 4. Formu sıfırla
+      document.getElementById('hizliFirema').value = '';
+      document.getElementById('hizliFiyat').value  = '';
+      document.getElementById('hizliPB').value     = 'TRY';
+      hizliFatura = false; hizliOdeme = false;
+      document.getElementById('hizliFaturaBtn').classList.remove('checked');
+      document.getElementById('hizliOdemeBtn').classList.remove('checked');
+      showHizliMsg(existing ? '✓ Eklendi' : '✓ Firma + hizmet oluşturuldu', 'success');
+
+      // 5. Yenile
+      await Promise.all([loadFirmalar(), loadOzet()]);
+
+    } catch (err) {
+      showHizliMsg(err.message, 'danger');
+    } finally {
+      ekleBtn.disabled = false;
+      ekleBtn.textContent = '+ Ekle';
+    }
+  }
+
+  function showHizliMsg(text, type) {
+    const el = document.getElementById('hizliMsg');
+    el.textContent = text;
+    el.className = 'hizli-msg hizli-msg-' + type;
+    setTimeout(() => { el.textContent = ''; el.className = 'hizli-msg'; }, 3000);
   }
 
   function openFirmaModal() {
