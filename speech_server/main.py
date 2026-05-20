@@ -78,12 +78,19 @@ async def transcribe(audio: UploadFile = File(...)):
         segments, info = model.transcribe(
             tmp_path,
             language="tr",
-            beam_size=2,
-            best_of=1,
+            beam_size=5,
+            best_of=5,
             temperature=0.0,
             vad_filter=True,
             vad_parameters=dict(min_silence_duration_ms=500),
             word_timestamps=False,
+            initial_prompt=(
+                "Teknik servis hizmet kaydı: Gebze, Cayırova, Kocaeli, Belediyesi, "
+                "modem, router, switch, access point, fiber, internet, kamera, NVR, UPS, "
+                "AutoCAD, Excel, Windows, server, laptop, bilgisayar, tablet, "
+                "TL, USD, Euro, fatura, tahsilat, aktivasyon, abonelik, "
+                "kurulum, montaj, teknik destek, bakım, arıza."
+            ),
         )
 
         parts = [seg.text.strip() for seg in segments if seg.text.strip()]
