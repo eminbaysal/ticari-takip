@@ -32,11 +32,47 @@ const upload = multer({
 });
 
 // ── Python yolu ───────────────────────────────────────────────
-// Windows'ta: py, python, python3 sırayla dene
-// .env ile PYTHON_PATH=C:\Python311\python.exe şeklinde override edebilirsin
-const PYTHON   = process.env.PYTHON_PATH || 'python';
-const MODEL    = process.env.WHISPER_MODEL || 'small';
-const SCRIPT   = path.join(__dirname, '..', 'transcribe.py');
+const PYTHON = process.env.PYTHON_PATH || 'python';
+const MODEL  = process.env.WHISPER_MODEL || 'small';
+const SCRIPT = path.join(__dirname, '..', 'transcribe.py');
+
+console.log('[speech] PYTHON_PATH :', PYTHON);
+console.log('[speech] SCRIPT      :', SCRIPT);
+console.log('[speech] WHISPER_MODEL:', MODEL);
+console.log('[speech] transcribe.py mevcut:', fs.existsSync(SCRIPT));
+
+// ── GET /api/speech/test — tanı endpoint'i ───────────────────
+router.get('/test', async (req, res) => {
+  const result = {
+    PYTHON,
+    MODEL,
+    SCRIPT,
+    scriptMevcut: fs.existsSync(SCRIPT),
+    uploadDir: UPLOAD_DIR,
+  };
+
+  // Python'u sahte dosyayla çalıştır, ham çıktıyı döndür
+  await new Promise((resolve) => {
+    let stdout = '', stderr = '';
+    const proc = require('child_process').spawn(PYTHON, [SCRIPT, 'test_yok.webm', MODEL], {
+      timeout: 15_000,
+      env: { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1' },
+    });
+    proc.stdout.setEncoding('utf8');
+    proc.stderr.setEncoding('utf8');
+    proc.stdout.on('data', d => { stdout += d; });
+    proc.stderr.on('data', d => { stderr += d; });
+    proc.on('error', err => { result.spawnHata = err.message; resolve(); });
+    proc.on('close', code => {
+      result.exitCode = code;
+      result.stdout   = stdout.slice(0, 500);
+      result.stderr   = stderr.slice(0, 500);
+      resolve();
+    });
+  });
+
+  res.json(result);
+});
 
 // ── POST /api/speech/transcribe ───────────────────────────────
 router.post('/transcribe', upload.single('audio'), async (req, res) => {
@@ -146,10 +182,13 @@ function _runWhisper(audioPath, modelSize) {
 
     const proc = spawn(PYTHON, [SCRIPT, audioPath, modelSize], {
       timeout: 120_000,  // 2 dakika max
+      env: { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1' },
     });
 
-    proc.stdout.on('data', d => { stdout += d.toString(); });
-    proc.stderr.on('data', d => { stderr += d.toString(); });  // model indirme ilerlemesi
+    proc.stdout.setEncoding('utf8');
+    proc.stderr.setEncoding('utf8');
+    proc.stdout.on('data', d => { stdout += d; });
+    proc.stderr.on('data', d => { stderr += d; });  // model indirme ilerlemesi
 
     proc.on('error', err => {
       if (err.code === 'ENOENT') {
@@ -164,9 +203,15 @@ function _runWhisper(audioPath, modelSize) {
 
     proc.on('close', code => {
       const raw = stdout.trim();
+
+      // stdout boşsa Python script'i başlamadan çöktü
       if (!raw) {
-        // Sadece stderr varsa (model indirme sırasında crash vb.)
-        reject(new Error('Python çıktı vermedi. stderr: ' + stderr.slice(0, 300)));
+        reject(new Error(
+          'Python çıktı vermedi (exit=' + code + ').\n' +
+          'PYTHON_PATH: ' + PYTHON + '\n' +
+          'SCRIPT: ' + SCRIPT + '\n' +
+          (stderr ? 'stderr: ' + stderr.slice(0, 500) : 'stderr boş')
+        ));
         return;
       }
 
@@ -179,7 +224,10 @@ function _runWhisper(audioPath, modelSize) {
         if (result.error) reject(new Error(result.error));
         else resolve(result.text || '');
       } catch {
-        reject(new Error('JSON parse hatası: ' + lastLine.slice(0, 200)));
+        reject(new Error(
+          'JSON parse hatası: ' + lastLine.slice(0, 200) +
+          (stderr ? '\nstderr: ' + stderr.slice(0, 300) : '')
+        ));
       }
     });
   });

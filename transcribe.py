@@ -21,8 +21,11 @@ def main():
 
     try:
         from faster_whisper import WhisperModel
-    except ImportError:
-        out({"error": "faster-whisper yuklu degil. Calistir: pip install faster-whisper"})
+    except ImportError as e:
+        out({"error": "faster-whisper import hatasi: " + str(e)})
+        return
+    except Exception as e:
+        out({"error": "Beklenmedik import hatasi: " + str(e)})
         return
 
     try:
