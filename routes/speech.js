@@ -1,10 +1,11 @@
-// routes/speech.js
+// routes/speech.js — Hibrit mimari: Render → Local Whisper Server
 const express  = require('express');
 const router   = express.Router();
 const multer   = require('multer');
 const path     = require('path');
 const fs       = require('fs');
-const { spawn } = require('child_process');
+const FormData = require('form-data');
+const axios    = require('axios');
 const { parse, escapeRegex } = require('../lib/speechParser');
 const Firma    = require('../models/Firma');
 const Hizmet   = require('../models/Hizmet');
@@ -31,52 +32,14 @@ const upload = multer({
   },
 });
 
-// ── Python yolu ───────────────────────────────────────────────
-const PYTHON = process.env.PYTHON_PATH || 'python';
-const MODEL  = process.env.WHISPER_MODEL || 'small';
-const SCRIPT = path.join(__dirname, '..', 'transcribe.py');
+// ── Speech server URL (ngrok / cloudflared tüneli) ────────────
+const SPEECH_SERVER_URL = (process.env.SPEECH_SERVER_URL || '').replace(/\/$/, '');
 
-console.log('[speech] PYTHON_PATH :', PYTHON);
-console.log('[speech] SCRIPT      :', SCRIPT);
-console.log('[speech] WHISPER_MODEL:', MODEL);
-console.log('[speech] transcribe.py mevcut:', fs.existsSync(SCRIPT));
+console.log('[speech] SPEECH_SERVER_URL:', SPEECH_SERVER_URL || '(tanımsız — özellik kapalı)');
 
-// ── GET /api/speech/available — özellik aktif mi? ────────────
+// ── GET /api/speech/available ─────────────────────────────────
 router.get('/available', (req, res) => {
-  res.json({ available: process.env.SPEECH_ENABLED === 'true' });
-});
-
-// ── GET /api/speech/test — tanı endpoint'i ───────────────────
-router.get('/test', async (req, res) => {
-  const result = {
-    PYTHON,
-    MODEL,
-    SCRIPT,
-    scriptMevcut: fs.existsSync(SCRIPT),
-    uploadDir: UPLOAD_DIR,
-  };
-
-  // Python'u sahte dosyayla çalıştır, ham çıktıyı döndür
-  await new Promise((resolve) => {
-    let stdout = '', stderr = '';
-    const proc = require('child_process').spawn(PYTHON, [SCRIPT, 'test_yok.webm', MODEL], {
-      timeout: 15_000,
-      env: { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1' },
-    });
-    proc.stdout.setEncoding('utf8');
-    proc.stderr.setEncoding('utf8');
-    proc.stdout.on('data', d => { stdout += d; });
-    proc.stderr.on('data', d => { stderr += d; });
-    proc.on('error', err => { result.spawnHata = err.message; resolve(); });
-    proc.on('close', code => {
-      result.exitCode = code;
-      result.stdout   = stdout.slice(0, 500);
-      result.stderr   = stderr.slice(0, 500);
-      resolve();
-    });
-  });
-
-  res.json(result);
+  res.json({ available: !!SPEECH_SERVER_URL });
 });
 
 // ── POST /api/speech/transcribe ───────────────────────────────
@@ -85,14 +48,24 @@ router.post('/transcribe', upload.single('audio'), async (req, res) => {
   try {
     if (!filePath) return res.status(400).json({ error: 'Ses dosyası gönderilmedi' });
 
-    const text = await _runWhisper(filePath, MODEL);
+    if (!SPEECH_SERVER_URL) {
+      return res.status(503).json({ error: 'Ses servisine ulaşılamıyor' });
+    }
+
+    const text = await _callSpeechServer(filePath, req.file);
     res.json({ text });
 
   } catch (e) {
     console.error('transcribe hata:', e.message);
+
+    // Bağlantı hatalarını özel mesajla döndür
+    const baglanti = ['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', 'ECONNRESET'];
+    if (baglanti.includes(e.code) || e.message?.includes('ulaşılamıyor')) {
+      return res.status(503).json({ error: 'Ses servisine ulaşılamıyor' });
+    }
+
     res.status(500).json({ error: e.message });
   } finally {
-    // Geçici dosyayı sil
     if (filePath) fs.unlink(filePath, () => {});
   }
 });
@@ -179,63 +152,33 @@ router.post('/kaydet', async (req, res) => {
   }
 });
 
-// ── faster-whisper çalıştır ───────────────────────────────────
-function _runWhisper(audioPath, modelSize) {
-  return new Promise((resolve, reject) => {
-    let stdout = '';
-    let stderr = '';
-
-    const proc = spawn(PYTHON, [SCRIPT, audioPath, modelSize], {
-      timeout: 120_000,  // 2 dakika max
-      env: { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1' },
-    });
-
-    proc.stdout.setEncoding('utf8');
-    proc.stderr.setEncoding('utf8');
-    proc.stdout.on('data', d => { stdout += d; });
-    proc.stderr.on('data', d => { stderr += d; });  // model indirme ilerlemesi
-
-    proc.on('error', err => {
-      if (err.code === 'ENOENT') {
-        reject(new Error(
-          `Python bulunamadı ("${PYTHON}"). ` +
-          `.env dosyasına PYTHON_PATH=<python yolu> ekleyin`
-        ));
-      } else {
-        reject(new Error('Python başlatılamadı: ' + err.message));
-      }
-    });
-
-    proc.on('close', code => {
-      const raw = stdout.trim();
-
-      // stdout boşsa Python script'i başlamadan çöktü
-      if (!raw) {
-        reject(new Error(
-          'Python çıktı vermedi (exit=' + code + ').\n' +
-          'PYTHON_PATH: ' + PYTHON + '\n' +
-          'SCRIPT: ' + SCRIPT + '\n' +
-          (stderr ? 'stderr: ' + stderr.slice(0, 500) : 'stderr boş')
-        ));
-        return;
-      }
-
-      // Son satır JSON olmalı (faster-whisper bazen uyarı basar)
-      const lines = raw.split('\n').filter(Boolean);
-      const lastLine = lines[lines.length - 1];
-
-      try {
-        const result = JSON.parse(lastLine);
-        if (result.error) reject(new Error(result.error));
-        else resolve(result.text || '');
-      } catch {
-        reject(new Error(
-          'JSON parse hatası: ' + lastLine.slice(0, 200) +
-          (stderr ? '\nstderr: ' + stderr.slice(0, 300) : '')
-        ));
-      }
-    });
+// ── Local Speech Server'a HTTP isteği gönder ─────────────────
+async function _callSpeechServer(filePath, fileInfo) {
+  const form = new FormData();
+  form.append('audio', fs.createReadStream(filePath), {
+    filename:    fileInfo.originalname || `kayit.${_mimeToExt(fileInfo.mimetype)}`,
+    contentType: fileInfo.mimetype,
   });
+
+  let response;
+  try {
+    response = await axios.post(`${SPEECH_SERVER_URL}/transcribe`, form, {
+      headers:        form.getHeaders(),
+      timeout:        120_000,   // 2 dakika max
+      maxContentLength: Infinity,
+      maxBodyLength:    Infinity,
+    });
+  } catch (e) {
+    // axios'un ağ hatasını düzgün fırlat
+    if (e.code) throw e;                                   // ECONNREFUSED vs.
+    if (e.response) {
+      const detail = e.response.data?.detail || e.response.data?.error || e.message;
+      throw new Error(detail);
+    }
+    throw e;
+  }
+
+  return response.data?.text || '';
 }
 
 // ── MIME → uzantı ─────────────────────────────────────────────
