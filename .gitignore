@@ -4,3 +4,5 @@ node_modules/
 export.js
 firmalar.json
 hizmetler.json
+uploads/*
+!uploads/.gitkeep

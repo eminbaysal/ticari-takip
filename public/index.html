@@ -315,10 +315,12 @@
         </div>
       </div>
 
-      <!-- Transkript kutusu -->
+      <!-- Transkript kutusu (düzenlenebilir) -->
       <div style="margin-top:6px;">
-        <label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);">Algılanan Metin</label>
-        <div id="sesTranskrip" class="ses-transkript">Henüz konuşma algılanmadı...</div>
+        <label style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);">Algılanan Metin <span style="font-weight:400;text-transform:none;letter-spacing:0;">(düzenleyebilirsiniz)</span></label>
+        <div id="sesTranskrip" class="ses-transkript" contenteditable="true"
+             oninput="sesSonMetin=this.textContent.trim(); document.getElementById('sesAnalizBtn').disabled=!sesSonMetin;"
+             style="outline:none;cursor:text;">Henüz konuşma algılanmadı...</div>
       </div>
 
       <!-- Örnek cümleler -->
