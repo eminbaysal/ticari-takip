@@ -32,14 +32,41 @@ const upload = multer({
   },
 });
 
-// ── Speech server URL (ngrok / cloudflared tüneli) ────────────
+// ── Speech server URL (Cloudflare Tunnel) ────────────────────
 const SPEECH_SERVER_URL = (process.env.SPEECH_SERVER_URL || '').replace(/\/$/, '');
 
 console.log('[speech] SPEECH_SERVER_URL:', SPEECH_SERVER_URL || '(tanımsız — özellik kapalı)');
 
+// ── Health check cache ────────────────────────────────────────
+// Sunucuyu her /available isteğinde ping atmak yerine 30s cache'liyoruz
+let _online    = false;   // son bilinen durum
+let _checking  = false;   // çift ping engeli
+
+async function _healthCheck() {
+  if (!SPEECH_SERVER_URL || _checking) return;
+  _checking = true;
+  try {
+    await axios.get(`${SPEECH_SERVER_URL}/health`, { timeout: 5_000 });
+    if (!_online) console.log('[speech] ✓ Ses sunucusu çevrimiçi');
+    _online = true;
+  } catch {
+    if (_online) console.log('[speech] ✗ Ses sunucusu çevrimdışı');
+    _online = false;
+  } finally {
+    _checking = false;
+  }
+}
+
+if (SPEECH_SERVER_URL) {
+  _healthCheck();                          // sunucu başlarken hemen kontrol
+  setInterval(_healthCheck, 30_000);       // sonra her 30 saniye
+}
+
 // ── GET /api/speech/available ─────────────────────────────────
 router.get('/available', (req, res) => {
-  res.json({ available: !!SPEECH_SERVER_URL });
+  // SPEECH_SERVER_URL tanımlı değilse hiç sorma
+  if (!SPEECH_SERVER_URL) return res.json({ available: false });
+  res.json({ available: _online });
 });
 
 // ── POST /api/speech/transcribe ───────────────────────────────
@@ -48,8 +75,10 @@ router.post('/transcribe', upload.single('audio'), async (req, res) => {
   try {
     if (!filePath) return res.status(400).json({ error: 'Ses dosyası gönderilmedi' });
 
-    if (!SPEECH_SERVER_URL) {
-      return res.status(503).json({ error: 'Ses servisine ulaşılamıyor' });
+    if (!SPEECH_SERVER_URL || !_online) {
+      // Hızlı cache miss: bir kez daha dene (ilk istek olabilir)
+      await _healthCheck();
+      if (!_online) return res.status(503).json({ error: 'Ses servisine ulaşılamıyor' });
     }
 
     const text = await _callSpeechServer(filePath, req.file);

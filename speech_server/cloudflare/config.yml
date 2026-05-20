@@ -1,0 +1,21 @@
+# Cloudflare Tunnel — Local Whisper Speech Server
+# Bu dosyayı %USERPROFILE%\.cloudflared\config.yml olarak kopyala
+#
+# Kurulum adımları için: kurulum.bat dosyasını çalıştır
+
+# "cloudflared tunnel list" ile aldığın TUNNEL-ID buraya
+tunnel: TUNNEL-ID-BURAYA-YAZ
+
+# Credentials dosyası otomatik oluşur (cloudflared tunnel create sonrası)
+credentials-file: C:\Users\YOUR-USERNAME\.cloudflared\TUNNEL-ID-BURAYA-YAZ.json
+
+ingress:
+  # speech.yourdomain.com → localhost:8000
+  - hostname: speech.DOMAIN-ADRESIN.com
+    service: http://localhost:8000
+    originRequest:
+      connectTimeout: 30s
+      noTLSVerify: false
+
+  # Diğer tüm istekler 404
+  - service: http_status:404
