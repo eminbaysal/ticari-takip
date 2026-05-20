@@ -1240,6 +1240,13 @@
   initTheme();
   checkAuth().then(() => { fetchKur().then(() => { loadOzet(); loadFirmalar(); }); });
 
+  // Sesli kayıt özelliği Render'da kapalı, lokalde açık
+  fetch('/api/speech/available').then(r => r.json()).then(d => {
+    if (!d.available) document.getElementById('sesliKayitBtn').style.display = 'none';
+  }).catch(() => {
+    document.getElementById('sesliKayitBtn').style.display = 'none';
+  });
+
   // Geri tuşuyla (bfcache) dönüldüğünde finansal verileri tazele
   window.addEventListener('pageshow', e => {
     if (e.persisted) { loadFirmalar(); loadOzet(); }

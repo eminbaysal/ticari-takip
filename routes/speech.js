@@ -41,6 +41,11 @@ console.log('[speech] SCRIPT      :', SCRIPT);
 console.log('[speech] WHISPER_MODEL:', MODEL);
 console.log('[speech] transcribe.py mevcut:', fs.existsSync(SCRIPT));
 
+// ── GET /api/speech/available — özellik aktif mi? ────────────
+router.get('/available', (req, res) => {
+  res.json({ available: process.env.SPEECH_ENABLED === 'true' });
+});
+
 // ── GET /api/speech/test — tanı endpoint'i ───────────────────
 router.get('/test', async (req, res) => {
   const result = {
